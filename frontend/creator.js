@@ -250,6 +250,17 @@ function renderVideos(videos, expandId) {
   }
 }
 
+const fullVideoCache = new Map();
+
+async function fetchFullVideo(videoId) {
+  if (fullVideoCache.has(videoId)) return fullVideoCache.get(videoId);
+  const res = await fetch(`/api/videos/${videoId}`);
+  if (!res.ok) throw new Error(`Failed to fetch video ${videoId}: ${res.status}`);
+  const data = await res.json();
+  fullVideoCache.set(videoId, data);
+  return data;
+}
+
 function renderCard(v, expanded) {
   const card = document.createElement("article");
   card.className = `video-card status-${v.status}` + (expanded ? " expanded" : "");
@@ -271,59 +282,262 @@ function renderCard(v, expanded) {
     </div>
     <div class="expand-icon">▾</div>
   `;
-  header.addEventListener("click", () => card.classList.toggle("expanded"));
 
   const body = document.createElement("div");
   body.className = "video-body";
-  body.appendChild(renderBody(v));
+
+  const grid = document.createElement("div");
+  grid.className = "body-grid";
+  const paqueteBlock = document.createElement("div");
+  paqueteBlock.className = "paquete-block";
+  paqueteBlock.innerHTML = `<h4>PAQUETE</h4><div class="paquete-loading">Cargando…</div>`;
+  grid.appendChild(paqueteBlock);
+  grid.appendChild(buildChecklistBlock(v));
+  body.appendChild(grid);
+
+  let loaded = false;
+  async function ensureLoaded() {
+    if (loaded) return;
+    loaded = true;
+    try {
+      const full = await fetchFullVideo(v.id);
+      const paqueteContent = renderPaquete(full);
+      paqueteBlock.innerHTML = "";
+      const h4 = document.createElement("h4");
+      h4.textContent = "PAQUETE";
+      paqueteBlock.appendChild(h4);
+      paqueteBlock.appendChild(paqueteContent);
+    } catch (err) {
+      paqueteBlock.innerHTML = `<h4>PAQUETE</h4><p class="error-text">Error cargando: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+  if (expanded) ensureLoaded();
+  header.addEventListener("click", () => {
+    card.classList.toggle("expanded");
+    if (card.classList.contains("expanded")) ensureLoaded();
+  });
 
   card.appendChild(header);
   card.appendChild(body);
   return card;
 }
 
-function renderBody(v) {
+function renderPaquete(v) {
   const wrap = document.createElement("div");
-  wrap.className = "body-grid";
+  const p = v.paquete || {};
 
-  // Files block
-  const filesBlock = document.createElement("div");
-  filesBlock.className = "files-block";
-  filesBlock.innerHTML = `<h4>Entregables</h4>`;
+  if (v.error_message) {
+    const err = document.createElement("p");
+    err.className = "error-text";
+    err.textContent = "Error: " + v.error_message;
+    wrap.appendChild(err);
+  }
+
+  if (v.suggested_publish_at) {
+    const hint = document.createElement("p");
+    hint.className = "publish-hint";
+    hint.textContent = `Publicación sugerida: ${formatDate(v.suggested_publish_at)}`;
+    wrap.appendChild(hint);
+  }
+
+  // Título principal + alternativas
+  if (p.title) {
+    wrap.appendChild(copyBlock({
+      label: "Título principal",
+      meta: `${p.title.length} caracteres`,
+      content: p.title,
+    }));
+  }
+  if (Array.isArray(p.alternatives) && p.alternatives.length) {
+    wrap.appendChild(copyBlock({
+      label: "Alternativas A/B",
+      content: p.alternatives.map((a, i) => `${i + 1}. ${a}`).join("\n"),
+    }));
+  }
+
+  if (p.description) {
+    wrap.appendChild(copyBlock({
+      label: "Descripción YouTube",
+      content: p.description,
+      multiline: true,
+    }));
+  }
+
+  if (p.chapters) {
+    wrap.appendChild(copyBlock({
+      label: "Capítulos",
+      content: p.chapters,
+      multiline: true,
+    }));
+  }
+
+  if (p.tags) {
+    wrap.appendChild(copyBlock({
+      label: "Tags",
+      content: p.tags,
+    }));
+  }
+
+  if (p.pinned_comment) {
+    wrap.appendChild(copyBlock({
+      label: "Comentario fijado",
+      content: p.pinned_comment,
+      multiline: true,
+    }));
+  }
+
+  // Miniatura
+  const thumbWrap = document.createElement("div");
+  thumbWrap.className = "thumb-section";
+  thumbWrap.innerHTML = `<h5 class="section-title">Miniatura · Plantilla ${escapeHtml(String(p.thumb_template ?? ""))}</h5>`;
+  if (p.thumb_textA) {
+    thumbWrap.appendChild(copyBlock({ label: "Texto A", content: p.thumb_textA, compact: true }));
+  }
+  if (p.thumb_textB) {
+    thumbWrap.appendChild(copyBlock({ label: "Texto B", content: p.thumb_textB, compact: true }));
+  }
+  if (p.thumb_prompt) {
+    thumbWrap.appendChild(copyBlock({
+      label: "Prompt image-gen (inglés)",
+      content: p.thumb_prompt,
+      multiline: true,
+    }));
+  }
+  if (p.thumb_textA || p.thumb_textB || p.thumb_prompt) wrap.appendChild(thumbWrap);
+
+  // Midform
+  if (Array.isArray(p.midform) && p.midform.length) {
+    const mfWrap = document.createElement("div");
+    mfWrap.className = "clips-section";
+    mfWrap.innerHTML = `<h5 class="section-title">Midform (${p.midform.length} piezas)</h5>`;
+    p.midform.forEach((m, i) => mfWrap.appendChild(renderClip(m, "Midform", i + 1)));
+    wrap.appendChild(mfWrap);
+  }
+
+  // Shorts
+  if (Array.isArray(p.shorts) && p.shorts.length) {
+    const sWrap = document.createElement("div");
+    sWrap.className = "clips-section";
+    sWrap.innerHTML = `<h5 class="section-title">Shorts (${p.shorts.length} piezas)</h5>`;
+    p.shorts.forEach((s, i) => sWrap.appendChild(renderClip(s, "Short", i + 1, true)));
+    wrap.appendChild(sWrap);
+  }
+
+  // Alertas
+  if (Array.isArray(p.alerts) && p.alerts.length) {
+    const aWrap = document.createElement("div");
+    aWrap.className = "alerts-section";
+    aWrap.innerHTML = `<h5 class="section-title">Alertas de monetización</h5>`;
+    const ul = document.createElement("ul");
+    ul.className = "alerts-list";
+    p.alerts.forEach(a => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${escapeHtml(a.timestamp || "")}</strong> · ${escapeHtml(a.section || "")} — <em>${escapeHtml(a.risk || "")}</em><br/><span class="alert-fix">${escapeHtml(a.adjustment || "")}</span>`;
+      ul.appendChild(li);
+    });
+    aWrap.appendChild(ul);
+    wrap.appendChild(aWrap);
+  }
+
+  // Archivos descargables (collapsed by default)
+  const filesDetails = document.createElement("details");
+  filesDetails.className = "files-details";
+  filesDetails.innerHTML = `<summary>Archivos descargables (PAQUETE.md, CSV, JSON…)</summary>`;
   const ul = document.createElement("ul");
   ul.className = "files-list";
   const fileMap = [
-    ["PAQUETE.md", "PAQUETE.md"],
+    ["PAQUETE.md", "PAQUETE.md completo"],
     ["transcripcion.txt", "Transcripción"],
-    ["descripcion.txt", "Descripción YouTube"],
+    ["descripcion.txt", "Descripción YouTube (.txt)"],
     ["cortes_editor.csv", "Cortes editor (CSV)"],
     ["miniatura.txt", "Miniatura (prompt + textos)"],
     ["paquete.json", "paquete.json (raw)"],
   ];
   for (const [fname, label] of fileMap) {
     const li = document.createElement("li");
-    li.innerHTML = `
-      <span>${escapeHtml(label)}</span>
-      <a href="/api/videos/${v.id}/files/${encodeURIComponent(fname)}" target="_blank" rel="noopener">Descargar</a>
-    `;
+    li.innerHTML = `<span>${escapeHtml(label)}</span><a href="/api/videos/${v.id}/files/${encodeURIComponent(fname)}" target="_blank" rel="noopener">Descargar</a>`;
     ul.appendChild(li);
   }
-  filesBlock.appendChild(ul);
-  if (v.suggested_publish_at) {
-    const hint = document.createElement("p");
-    hint.className = "publish-hint";
-    hint.textContent = `Publicación sugerida: ${formatDate(v.suggested_publish_at)}`;
-    filesBlock.appendChild(hint);
-  }
-  if (v.error_message) {
-    const err = document.createElement("p");
-    err.className = "publish-hint";
-    err.style.color = "var(--error)";
-    err.textContent = "Error: " + v.error_message;
-    filesBlock.appendChild(err);
-  }
+  filesDetails.appendChild(ul);
+  wrap.appendChild(filesDetails);
 
-  // Checklist block
+  return wrap;
+}
+
+function renderClip(clip, kind, num, isShort = false) {
+  const wrap = document.createElement("div");
+  wrap.className = "clip-card";
+  const header = document.createElement("div");
+  header.className = "clip-header";
+  header.innerHTML = `
+    <strong>${kind} ${num}</strong>
+    <span class="clip-title">${escapeHtml(clip.title || "")}</span>
+    <span class="clip-times">${escapeHtml(clip.in || "")} → ${escapeHtml(clip.out || "")} · ${escapeHtml(clip.duration || "")}</span>
+  `;
+  wrap.appendChild(header);
+
+  const brief = [
+    `${kind} ${num} — ${clip.title || ""}`,
+    `IN: ${clip.in || ""}  OUT: ${clip.out || ""}  DUR: ${clip.duration || ""}`,
+    `Frase entrada: "${clip.phrase_in || ""}"`,
+  ];
+  if (clip.phrase_out) brief.push(`Frase salida: "${clip.phrase_out}"`);
+  if (clip.burn_text) brief.push(`Texto a quemar: ${clip.burn_text}`);
+  if (clip.why_works) brief.push(`Por qué funciona: ${clip.why_works}`);
+
+  wrap.appendChild(copyBlock({
+    label: "Brief para editor",
+    content: brief.join("\n"),
+    multiline: true,
+    compact: true,
+  }));
+  if (clip.burn_text) {
+    wrap.appendChild(copyBlock({
+      label: "Texto miniatura",
+      content: clip.burn_text,
+      compact: true,
+    }));
+  }
+  return wrap;
+}
+
+function copyBlock({ label, content, meta, multiline = false, compact = false }) {
+  const block = document.createElement("div");
+  block.className = "copy-block" + (compact ? " compact" : "") + (multiline ? " multiline" : "");
+
+  const head = document.createElement("div");
+  head.className = "copy-head";
+  head.innerHTML = `
+    <span class="copy-label">${escapeHtml(label)}</span>
+    ${meta ? `<span class="copy-meta">${escapeHtml(meta)}</span>` : ""}
+    <button class="copy-btn" type="button">Copiar</button>
+  `;
+  const pre = document.createElement(multiline ? "pre" : "div");
+  pre.className = "copy-content";
+  pre.textContent = content || "";
+
+  head.querySelector(".copy-btn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(content || "");
+      const orig = btn.textContent;
+      btn.textContent = "✓ Copiado";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove("copied");
+      }, 1500);
+    } catch (err) {
+      btn.textContent = "Error";
+    }
+  });
+
+  block.appendChild(head);
+  block.appendChild(pre);
+  return block;
+}
+
+function buildChecklistBlock(v) {
   const checklistBlock = document.createElement("div");
   checklistBlock.className = "checklist-block";
   checklistBlock.innerHTML = `<h4>Checklist</h4>`;
@@ -357,7 +571,6 @@ function renderBody(v) {
     }
     checklistBlock.appendChild(block);
   }
-
   const actions = document.createElement("div");
   actions.className = "checklist-actions";
   const clearBtn = document.createElement("button");
@@ -367,14 +580,12 @@ function renderBody(v) {
     e.stopPropagation();
     if (!confirm("¿Reiniciar checklist?")) return;
     await fetch(`/api/videos/${v.id}/checklist`, { method: "DELETE" });
+    fullVideoCache.delete(v.id);
     await refreshVideos(v.id);
   });
   actions.appendChild(clearBtn);
   checklistBlock.appendChild(actions);
-
-  wrap.appendChild(filesBlock);
-  wrap.appendChild(checklistBlock);
-  return wrap;
+  return checklistBlock;
 }
 
 function updateProgress(videoId) {
