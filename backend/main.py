@@ -222,7 +222,7 @@ def process_transcript(slug: str, payload: dict):
                 cfg.get("default_type", "historia"),
             )
 
-            existing = [vv.code for (vv,) in
+            existing = [row[0] for row in
                         db.query(Video.code).filter(Video.creator_id == c.id).all()]
             code = (extract_code(title_hint, c.code_prefix)
                     or next_available_code(existing, c.code_prefix))
