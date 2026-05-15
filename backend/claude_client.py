@@ -105,3 +105,56 @@ def generate_paquete(system_prompt: str, user_template: str, *,
             logger.error(f"Error Claude (intento {attempt + 1}): {e}")
 
     raise RuntimeError(f"No se obtuvo JSON válido tras 3 intentos: {last_err}")
+
+
+def stream_paquete(system_prompt: str, user_template: str, *,
+                   code: str, title: str, type_: str,
+                   duration: str, transcript: str,
+                   on_progress=None):
+    """Versión streaming: llama on_progress(chars_received, accumulated_text)
+    a medida que llegan tokens de Claude. Devuelve el dict ya parseado al final.
+
+    Reintenta hasta 2 veces si el JSON sale malformado."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY no está configurada")
+
+    client = Anthropic(api_key=api_key)
+    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    user_msg = user_template.format(
+        code=code, title=title, type=type_, duration=duration, transcript=transcript,
+    )
+
+    last_err = None
+    for attempt in range(2):
+        try:
+            logger.info(f"Stream Claude (intento {attempt + 1}/2) modelo={model}")
+            accumulated = []
+            with client.messages.stream(
+                model=model,
+                max_tokens=16000,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_msg}],
+            ) as stream:
+                for chunk in stream.text_stream:
+                    accumulated.append(chunk)
+                    if on_progress:
+                        on_progress(sum(len(c) for c in accumulated), chunk)
+
+            raw = "".join(accumulated)
+            data = _extract_json(raw)
+            missing = [k for k in REQUIRED_KEYS if k not in data]
+            if missing:
+                raise ValueError(f"Faltan claves: {missing}")
+            if not isinstance(data.get("midform"), list) or not isinstance(data.get("shorts"), list):
+                raise ValueError("midform y shorts deben ser listas")
+            return data
+
+        except (json.JSONDecodeError, ValueError) as e:
+            last_err = e
+            logger.warning(f"Stream intento {attempt + 1}: JSON inválido: {e}")
+        except Exception as e:
+            last_err = e
+            logger.error(f"Stream intento {attempt + 1}: {e}")
+
+    raise RuntimeError(f"No se obtuvo JSON válido tras 2 intentos: {last_err}")

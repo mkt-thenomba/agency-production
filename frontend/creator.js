@@ -16,6 +16,23 @@ const statusLine = $("#status-line");
 const videosList = $("#videos-list");
 const emptyState = $("#empty-state");
 const refreshBtn = $("#refresh-btn");
+const progressBlock = $("#progress-block");
+const progressStage = $("#progress-stage");
+const progressFill = $("#progress-fill");
+const progressPct = $("#progress-pct");
+const progressDetail = $("#progress-detail");
+
+const STAGE_LABELS = {
+  parsing: "Parseando transcripción",
+  saving: "Reservando registro",
+  claude_start: "Llamando a Claude",
+  claude_streaming: "Claude generando…",
+  retrying: "Reintentando…",
+  rendering: "Renderizando entregables",
+  saving_final: "Guardando en base de datos",
+  done: "PAQUETE generado",
+  error: "Error",
+};
 
 let creator = null;
 let checklistTemplate = [];
@@ -119,38 +136,92 @@ function bindProcess() {
     }
 
     statusLine.classList.remove("error", "success");
-    statusLine.textContent = "Generando PAQUETE con Claude… (~15-30 s)";
+    statusLine.textContent = "";
     processBtn.disabled = true;
+
+    showProgress("Iniciando…", 0, "");
 
     try {
       const res = await fetch(`/api/creators/${slug}/process`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
         body: JSON.stringify({
           transcript,
           title_hint: titleInput.value.trim(),
           type_hint: typeSelect.value || "",
         }),
       });
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         const txt = await res.text();
         throw new Error(`${res.status}: ${txt}`);
       }
-      const video = await res.json();
-      statusLine.textContent = `✓ PAQUETE generado: ${video.code} · ${video.title}`;
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finalVideo = null;
+      let errorMsg = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Procesa cada bloque "data: {...}\n\n"
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          if (!block.startsWith("data:")) continue;
+          const payload = block.replace(/^data:\s*/, "");
+          let evt;
+          try { evt = JSON.parse(payload); }
+          catch { continue; }
+
+          const label = STAGE_LABELS[evt.stage] || evt.stage;
+          const detail = evt.message || "";
+          if (evt.stage === "done") {
+            finalVideo = evt.video;
+            showProgress(label, 100, detail, "done");
+          } else if (evt.stage === "error") {
+            errorMsg = evt.error || "Error desconocido";
+            showProgress("Error", 100, errorMsg, "error");
+          } else {
+            showProgress(label, evt.progress || 0, detail);
+          }
+        }
+      }
+
+      if (errorMsg) throw new Error(errorMsg);
+      if (!finalVideo) throw new Error("Stream cerrado sin evento `done`");
+
+      statusLine.textContent = `✓ PAQUETE generado: ${finalVideo.code} · ${finalVideo.title}`;
       statusLine.classList.add("success");
       textarea.value = "";
       titleInput.value = "";
       uploadedFileContent = null;
       filenameDisplay.textContent = "";
-      await refreshVideos(video.id);
+      await refreshVideos(finalVideo.id);
+      setTimeout(() => progressBlock.classList.add("hidden"), 2500);
+
     } catch (err) {
       statusLine.textContent = "Error: " + err.message;
       statusLine.classList.add("error");
+      showProgress("Error", 100, err.message, "error");
     } finally {
       processBtn.disabled = false;
     }
   });
+}
+
+function showProgress(stage, pct, detail, state) {
+  progressBlock.classList.remove("hidden", "done", "error");
+  if (state) progressBlock.classList.add(state);
+  progressStage.textContent = stage;
+  const p = Math.max(0, Math.min(100, Number(pct) || 0));
+  progressFill.style.width = `${p}%`;
+  progressPct.textContent = `${p.toFixed(1)}%`;
+  progressDetail.textContent = detail || "";
 }
 
 function bindRefresh() {

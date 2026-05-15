@@ -4,12 +4,14 @@ import os
 from pathlib import Path
 from typing import Optional
 
+import json as json_lib
+
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, Form
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from .database import init_db, get_db
+from .database import init_db, get_db, SessionLocal
 from .models import Creator, Video, ChecklistItem
 from .seed import seed_creators
 from .auth import (
@@ -17,7 +19,7 @@ from .auth import (
     COOKIE_NAME, LOGIN_PATH,
 )
 from .transcript_parser import parse_transcript, format_mmss
-from .claude_client import generate_paquete
+from .claude_client import generate_paquete, stream_paquete
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -181,86 +183,189 @@ def list_videos(slug: str, db: Session = Depends(get_db)):
     return {"videos": [_video_to_dict(v) for v in videos]}
 
 
+def _sse(data: dict) -> str:
+    return f"data: {json_lib.dumps(data, ensure_ascii=False)}\n\n"
+
+
 @app.post("/api/creators/{slug}/process")
-def process_transcript(slug: str, payload: dict, db: Session = Depends(get_db)):
-    """Procesa un transcript inmediatamente (síncrono, ~15-30s).
-    Body: { "title_hint": "...", "transcript": "..." (texto o JSON AssemblyAI) }"""
-    c = db.query(Creator).filter(Creator.slug == slug).first()
-    if not c:
-        raise HTTPException(404, "Creator no encontrado")
+def process_transcript(slug: str, payload: dict):
+    """Streaming SSE: parsing → llamada Claude (tokens en vivo) → render → save.
+    Emite eventos {stage, progress(0-100), message?, video?} hasta `done` o `error`."""
 
-    raw_transcript = (payload.get("transcript") or "").strip()
-    if not raw_transcript:
-        raise HTTPException(400, "Falta el transcript")
+    def event_stream():
+        db: Session = SessionLocal()
+        video = None
+        try:
+            yield _sse({"stage": "parsing", "progress": 2, "message": "Cargando creator"})
 
-    title_hint = payload.get("title_hint") or ""
-    type_hint = payload.get("type_hint") or ""
+            c = db.query(Creator).filter(Creator.slug == slug).first()
+            if not c:
+                yield _sse({"stage": "error", "error": "Creator no encontrado"})
+                return
 
-    # Parse del transcript
-    parsed, duration_s, source = parse_transcript(raw_transcript)
-    duration_str = format_mmss(duration_s) if duration_s > 0 else "—"
+            raw_transcript = (payload.get("transcript") or "").strip()
+            if not raw_transcript:
+                yield _sse({"stage": "error", "error": "Falta la transcripción"})
+                return
 
-    # Metadatos
-    cfg = c.config or {}
-    title = clean_title_from_input(title_hint)
-    vtype = type_hint or detect_type(title_hint, cfg.get("type_keywords", {}),
-                                     cfg.get("default_type", "historia"))
+            title_hint = payload.get("title_hint") or ""
+            type_hint = payload.get("type_hint") or ""
 
-    existing = [vv.code for (vv,) in db.query(Video.code).filter(Video.creator_id == c.id).all()]
-    code = extract_code(title_hint, c.code_prefix) or next_available_code(existing, c.code_prefix)
-    if code in existing:
-        code = next_available_code(existing, c.code_prefix)
-    slug_v = slugify(title)
+            yield _sse({"stage": "parsing", "progress": 5, "message": "Parseando transcripción"})
+            parsed, duration_s, source = parse_transcript(raw_transcript)
+            duration_str = format_mmss(duration_s) if duration_s > 0 else "—"
 
-    # Reserva fila inicial
-    video = Video(
-        creator_id=c.id,
-        code=code,
-        slug=slug_v,
-        title=title,
-        type=vtype,
-        duration=duration_str,
-        status="processing",
-        transcript=parsed,
-        transcript_source=source,
-        suggested_publish_at=suggest_publish_at(vtype, cfg.get("publishing_schedule", {})),
+            cfg = c.config or {}
+            title = clean_title_from_input(title_hint)
+            vtype = type_hint or detect_type(
+                title_hint, cfg.get("type_keywords", {}),
+                cfg.get("default_type", "historia"),
+            )
+
+            existing = [vv.code for (vv,) in
+                        db.query(Video.code).filter(Video.creator_id == c.id).all()]
+            code = (extract_code(title_hint, c.code_prefix)
+                    or next_available_code(existing, c.code_prefix))
+            if code in existing:
+                code = next_available_code(existing, c.code_prefix)
+            slug_v = slugify(title)
+
+            yield _sse({"stage": "saving", "progress": 8,
+                        "message": f"Reservando registro {code}"})
+
+            video = Video(
+                creator_id=c.id, code=code, slug=slug_v, title=title, type=vtype,
+                duration=duration_str, status="processing",
+                transcript=parsed, transcript_source=source,
+                suggested_publish_at=suggest_publish_at(
+                    vtype, cfg.get("publishing_schedule", {})),
+            )
+            db.add(video); db.commit(); db.refresh(video)
+            for tpl in c.checklist_template or []:
+                db.add(ChecklistItem(video_id=video.id, item_key=tpl["key"], done=False))
+            db.commit()
+
+            yield _sse({"stage": "claude_start", "progress": 12,
+                        "message": "Llamando a Claude…"})
+
+            # Streaming con Claude — progreso real basado en tokens recibidos
+            EXPECTED_CHARS = 9000  # un paquete típico
+            state = {"last_pct": 12, "chars": 0}
+
+            def on_progress(chars: int, _chunk: str):
+                state["chars"] = chars
+                # 12 → 88 según chars recibidos
+                pct = 12 + min(76, (chars / EXPECTED_CHARS) * 76)
+                state["last_pct"] = pct
+
+            # Generador interno para emitir eventos durante el stream
+            # Como stream_paquete es bloqueante, usamos un truco: poll de last_pct
+            # via timer. Pero más simple: hacemos el stream "manual" aquí.
+            from anthropic import Anthropic
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                yield _sse({"stage": "error", "error": "ANTHROPIC_API_KEY no configurada"})
+                video.status = "error"
+                video.error_message = "ANTHROPIC_API_KEY no configurada"
+                db.commit()
+                return
+
+            client = Anthropic(api_key=api_key)
+            model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+            user_msg = c.user_template.format(
+                code=code, title=title, type=vtype,
+                duration=duration_str, transcript=parsed,
+            )
+
+            paquete = None
+            last_err = None
+            for attempt in range(2):
+                accumulated = []
+                last_emit = 0
+                try:
+                    with client.messages.stream(
+                        model=model, max_tokens=16000,
+                        system=c.system_prompt,
+                        messages=[{"role": "user", "content": user_msg}],
+                    ) as stream:
+                        for text_chunk in stream.text_stream:
+                            accumulated.append(text_chunk)
+                            chars = sum(len(x) for x in accumulated)
+                            # Emite cada ~200 chars para no spamear
+                            if chars - last_emit >= 200:
+                                last_emit = chars
+                                pct = 12 + min(76, (chars / EXPECTED_CHARS) * 76)
+                                yield _sse({
+                                    "stage": "claude_streaming",
+                                    "progress": round(pct, 1),
+                                    "chars": chars,
+                                    "message": f"Claude generando… ({chars} caracteres)",
+                                })
+
+                    raw = "".join(accumulated)
+                    from .claude_client import _extract_json, REQUIRED_KEYS
+                    paquete = _extract_json(raw)
+                    missing = [k for k in REQUIRED_KEYS if k not in paquete]
+                    if missing:
+                        raise ValueError(f"Faltan claves en el JSON: {missing}")
+                    if not isinstance(paquete.get("midform"), list) \
+                       or not isinstance(paquete.get("shorts"), list):
+                        raise ValueError("midform y shorts deben ser listas")
+                    break  # éxito
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Stream intento {attempt + 1}: {e}")
+                    if attempt < 1:
+                        yield _sse({"stage": "retrying", "progress": 12,
+                                    "message": "JSON inválido, reintentando…"})
+
+            if paquete is None:
+                raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            yield _sse({"stage": "rendering", "progress": 92,
+                        "message": "Renderizando entregables"})
+            artifacts = render_all(code, vtype, duration_str, paquete,
+                                   cfg.get("thumb_templates", {}))
+
+            yield _sse({"stage": "saving_final", "progress": 97,
+                        "message": "Guardando en base de datos"})
+            video.paquete_json = paquete
+            video.paquete_md = artifacts["paquete_md"]
+            video.descripcion_txt = artifacts["descripcion"]
+            video.cortes_csv = artifacts["cortes_csv"]
+            video.miniatura_txt = artifacts["miniatura"]
+            video.status = "done"
+            db.commit()
+            db.refresh(video)
+
+            yield _sse({
+                "stage": "done", "progress": 100,
+                "message": f"PAQUETE generado: {video.code}",
+                "video": _video_to_dict(video, include_artifacts=True),
+            })
+
+        except Exception as e:
+            logger.exception("Fallo en process_transcript stream")
+            try:
+                if video is not None:
+                    video.status = "error"
+                    video.error_message = f"{type(e).__name__}: {e}"
+                    db.commit()
+            except Exception:
+                pass
+            yield _sse({"stage": "error", "error": f"{type(e).__name__}: {e}"})
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
-    db.add(video)
-    db.commit()
-    db.refresh(video)
-
-    # Siembra checklist
-    for tpl in c.checklist_template or []:
-        db.add(ChecklistItem(video_id=video.id, item_key=tpl["key"], done=False))
-    db.commit()
-
-    # Genera paquete con Claude
-    try:
-        paquete = generate_paquete(
-            system_prompt=c.system_prompt,
-            user_template=c.user_template,
-            code=code, title=title, type_=vtype,
-            duration=duration_str, transcript=parsed,
-        )
-    except Exception as e:
-        logger.error(f"Falló Claude para video {video.id}: {e}")
-        video.status = "error"
-        video.error_message = f"{type(e).__name__}: {e}"
-        db.commit()
-        raise HTTPException(500, f"Error generando PAQUETE: {e}")
-
-    # Renderiza artefactos
-    artifacts = render_all(code, vtype, duration_str, paquete,
-                          cfg.get("thumb_templates", {}))
-    video.paquete_json = paquete
-    video.paquete_md = artifacts["paquete_md"]
-    video.descripcion_txt = artifacts["descripcion"]
-    video.cortes_csv = artifacts["cortes_csv"]
-    video.miniatura_txt = artifacts["miniatura"]
-    video.status = "done"
-    db.commit()
-
-    return _video_to_dict(video, include_artifacts=True)
 
 
 @app.get("/api/videos/{video_id}")
