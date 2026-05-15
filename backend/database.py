@@ -8,14 +8,15 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).parent.parent
-LOCAL_DATA = ROOT / "data"
-LOCAL_DATA.mkdir(exist_ok=True)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 if not DATABASE_URL:
-    # Fallback local: SQLite
-    db_path = LOCAL_DATA / "agency.db"
+    # Fallback local: SQLite. Solo creamos `data/` cuando estamos en local
+    # (en Vercel el filesystem es read-only excepto /tmp).
+    local_data = ROOT / "data"
+    local_data.mkdir(exist_ok=True)
+    db_path = local_data / "agency.db"
     DATABASE_URL = f"sqlite:///{db_path}"
     logger.info(f"DATABASE_URL no set, usando SQLite en {db_path}")
 
