@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login · AgencyProduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="hub-monogram large">AP</div>
+    <h1>AgencyProduction</h1>
+    <p class="login-tagline">Introduce la contraseña compartida del equipo</p>
+    <form method="POST" action="/api/login" id="login-form">
+      <input type="hidden" name="next" id="next-input" value="/" />
+      <input type="password" name="password" placeholder="Contraseña" autofocus required />
+      <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+    <p class="login-error hidden" id="login-error">Contraseña incorrecta.</p>
+  </div>
+  <script>
+    // Pasa el ?next= de la URL al campo oculto
+    const params = new URLSearchParams(location.search);
+    const next = params.get("next");
+    if (next) document.getElementById("next-input").value = next;
+    if (params.get("error")) document.getElementById("login-error").classList.remove("hidden");
+  </script>
+</body>
+</html>

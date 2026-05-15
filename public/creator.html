@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator · AgencyProduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="creator-body">
+  <header id="creator-topbar" class="creator-topbar">
+    <a href="/" class="back-link">← AgencyProduction</a>
+    <div id="creator-header" class="creator-header"></div>
+  </header>
+
+  <main class="creator-main">
+    <section id="placeholder-warning" class="placeholder-warning hidden"></section>
+
+    <section class="input-section">
+      <h2>Nuevo vídeo</h2>
+      <div class="form-row">
+        <label>
+          <span>Nombre / código de trabajo (ej. <code>V12_lepanto</code>)</span>
+          <input type="text" id="title-hint" placeholder="V12_la_espana_imperial" />
+        </label>
+        <label class="type-label">
+          <span>Tipo (auto si lo dejas vacío)</span>
+          <select id="type-hint">
+            <option value="">(auto)</option>
+            <option value="historia">historia</option>
+            <option value="actualidad">actualidad</option>
+            <option value="presentacion">presentación</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="paste">Pegar transcripción</button>
+        <button class="tab-btn" data-tab="upload">Arrastrar JSON de AssemblyAI</button>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="paste">
+        <textarea id="transcript-text" placeholder="Pega la transcripción aquí. Acepta texto con timestamps tipo [MM:SS], formato SRT, o texto plano." rows="10"></textarea>
+      </div>
+      <div class="tab-panel hidden" data-tab-panel="upload">
+        <div id="dropzone" class="dropzone-small">
+          <input type="file" id="file-input" accept=".json,.srt,.txt,.vtt" hidden />
+          <div class="drop-title-small">Arrastra el JSON / SRT / TXT</div>
+          <div class="drop-hint-small">o haz clic para seleccionar</div>
+          <div id="filename-display" class="filename-display"></div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button id="process-btn" class="btn-primary">Generar PAQUETE</button>
+        <span id="status-line" class="status-line"></span>
+      </div>
+    </section>
+
+    <section class="videos-section">
+      <div class="section-header">
+        <h2>Vídeos procesados</h2>
+        <button id="refresh-btn" class="btn-ghost">Actualizar</button>
+      </div>
+      <div id="videos-list" class="videos-list"></div>
+      <div id="empty-state" class="empty-state hidden">
+        Aún no hay vídeos. Pega una transcripción y genera el primer PAQUETE.
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/creator.js"></script>
+</body>
+</html>
