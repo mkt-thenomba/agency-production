@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 ROOT = Path(__file__).parent.parent
-PUBLIC_DIR = ROOT / "public"
+PUBLIC_DIR = ROOT / "frontend"
 
 app = FastAPI(title="AgencyProduction")
 app.add_middleware(PasswordGate)
@@ -346,4 +346,8 @@ def delete_video(video_id: int, db: Session = Depends(get_db)):
 
 
 # ============== Estáticos ==============
-app.mount("/static", StaticFiles(directory=PUBLIC_DIR), name="static")
+# Defensive: si por alguna razón Vercel no incluye el frontend, no crashee al import
+if PUBLIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=PUBLIC_DIR), name="static")
+else:
+    logger.warning(f"No existe PUBLIC_DIR={PUBLIC_DIR}; estáticos no montados")
