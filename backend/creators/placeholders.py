@@ -73,10 +73,7 @@ def _placeholder(slug: str, name: str, initials: str, subtitle: str = "",
 
 
 PLACEHOLDERS = [
-    _placeholder("raices-europa", "Raíces de Europa", "RE",
-                 "Historia y civilización europea", "#2E4053", "#D4B97D"),
-    _placeholder("jose-ballesteros", "José Ballesteros", "JB",
-                 "Pendiente de configurar", "#4A235A", "#D4B97D"),
-    _placeholder("gonzalo-rodriguez", "Gonzalo Rodríguez", "GR",
-                 "Pendiente de configurar", "#0E6251", "#D4B97D"),
+    # Vacío — los 4 creators iniciales ya tienen config completa
+    # (marcelo_gullo, raices_europa, jose_ballesteros, gonzalo_rodriguez).
+    # Si Pablo añade nuevos creators sin config aún, vuelven aquí.
 ]
