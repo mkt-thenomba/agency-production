@@ -32,7 +32,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
 {
   "title": "string · 60-65 caracteres",
   "alternatives": ["alt1", "alt2", "alt3"],
-  "description": "string · descripción YouTube completa con todos los bloques (gancho, párrafo, bullets, cursos/eventos de Raíces, redes, hashtags)",
+  "description": "string · SOLO la descripción narrativa del vídeo concreto: gancho + 1-2 párrafos divulgativos + bullets de lo que se aprende. NUNCA incluir URLs, redes sociales, hashtags, lista de cursos, REIFF, Premios, info institucional ni firma — Pablo añade ese bloque con su plantilla fija al pegar en YouTube.",
   "chapters": "string · uno por línea formato 'MM:SS Título'",
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
@@ -67,13 +67,13 @@ PLANTILLA 3 — Fresco renacentista (Renacimiento / humanismo / arte):
 PLANTILLA 4 — Mappa mundi (historia antigua / geografía / civilizaciones):
 "Aged medieval mappa mundi spread across an oak table{DETAIL}, hand-drawn cartography on parchment with sea monsters and ornate compass roses, Latin annotations faintly visible, brass astrolabe and dividers resting on a corner, warm parchment cream and dorado tones with navy ink, a single candle illuminating from one side, the {SIDE} 45% softly faded into table edge and warm darkness to leave negative space for a portrait, no modern text, no logos, museum-grade still life quality, 16:9 aspect ratio, 1280x720."
 
-URLs Y DATOS A USAR LITERALMENTE en la descripción:
-- Web: raicesdeeuropa.com
-- Cursos, conferencias y máster: ver la web
-- Festival REIFF (cine internacional) — mencionar cuando proceda
-- Premios Raíces de Europa — mencionar cuando proceda
-- Redes: Raíces de Europa en YouTube, Instagram, X y Facebook
-- Hashtag inicial: #RaícesDeEuropa
+REGLA ESPECIAL DE DESCRIPCIÓN (importante):
+Pablo ya tiene una plantilla fija con URLs, redes, hashtags, cursos, REIFF y Premios que pega aparte en YouTube. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto:
+- Gancho de apertura (1-2 frases)
+- Cuerpo divulgativo (1-2 párrafos contando el qué y el porqué del vídeo)
+- Opcionalmente: 3-5 bullets de "Lo que vas a descubrir en este vídeo"
+NUNCA incluyas en `description`: URLs (raicesdeeuropa.com ni ninguna otra), redes sociales, hashtags, cursos, conferencias, REIFF, Premios Raíces, firma institucional ni boilerplate.
+El resto de campos (chapters, tags, pinned_comment) sí los generas con normalidad.
 """
 
 USER_TEMPLATE = """METADATOS DEL VÍDEO:
