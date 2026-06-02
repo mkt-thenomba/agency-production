@@ -31,18 +31,22 @@ class BlobConfigError(RuntimeError):
     pass
 
 
-def _read_rw_token() -> tuple[str, str]:
-    """Devuelve (store_id, secret) extraídos del BLOB_READ_WRITE_TOKEN."""
+def _read_rw_token() -> str:
+    """Devuelve el BLOB_READ_WRITE_TOKEN tal cual (lo usamos COMPLETO como clave HMAC)."""
     rw = os.environ.get("BLOB_READ_WRITE_TOKEN", "").strip()
     if not rw:
         raise BlobConfigError("BLOB_READ_WRITE_TOKEN no configurada")
     if not rw.startswith(TOKEN_PREFIX_RW):
         raise BlobConfigError("BLOB_READ_WRITE_TOKEN no empieza por vercel_blob_rw_")
-    rest = rw[len(TOKEN_PREFIX_RW):]
-    parts = rest.split("_", 1)
-    if len(parts) != 2:
+    return rw
+
+
+def _parse_store_id(rw_token: str) -> str:
+    """Replica `parseStoreIdFromReadWriteToken`: split('_')[3]."""
+    parts = rw_token.split("_")
+    if len(parts) < 5:
         raise BlobConfigError("Formato BLOB_READ_WRITE_TOKEN inválido")
-    return parts[0], parts[1]
+    return parts[3]
 
 
 def generate_client_token(
@@ -52,41 +56,54 @@ def generate_client_token(
     max_size_bytes: Optional[int] = None,
     add_random_suffix: bool = True,
     cache_control_max_age: Optional[int] = None,
-    ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    ttl_seconds: int = 30,
     valid_until_ms: Optional[int] = None,
 ) -> str:
-    """Firma un token de cliente para subir UN archivo concreto a Blob.
+    """Replica EXACTA de @vercel/blob `generateClientTokenFromReadWriteToken`.
 
-    Match con `generateClientTokenFromReadWriteToken` de @vercel/blob:
-      - JSON payload con campos opcionales
-      - base64 (no base64url) del JSON
-      - HMAC-SHA256(secret, payload_b64) en hex
-      - String final: `vercel_blob_client_<storeId>_<sig>.<payload_b64>`
+    Algoritmo (verificado contra packages/blob/src/client.ts):
+      1. JSON.stringify({...args, validUntil}) → utf-8
+      2. base64(json) → `payload`
+      3. HMAC-SHA256 con el rw-token COMPLETO como clave, sobre `payload`
+         → digest hex → `securedKey`
+      4. concat `${securedKey}.${payload}` → utf-8
+      5. base64(concat)
+      6. Token final: `vercel_blob_client_${storeId}_${step5}`
+
+    El SDK default ttl es 30 segundos (suficiente porque el PUT empieza
+    inmediatamente y la validación es al inicio del request).
     """
-    store_id, secret = _read_rw_token()
+    rw_token = _read_rw_token()
+    store_id = _parse_store_id(rw_token)
 
     if valid_until_ms is None:
         valid_until_ms = int(time.time() * 1000) + ttl_seconds * 1000
 
-    payload: dict = {"pathname": pathname, "validUntil": valid_until_ms}
+    args: dict = {"pathname": pathname}
     if allowed_content_types is not None:
-        payload["allowedContentTypes"] = allowed_content_types
+        args["allowedContentTypes"] = allowed_content_types
     if max_size_bytes is not None:
-        payload["maximumSizeInBytes"] = max_size_bytes
-    payload["addRandomSuffix"] = add_random_suffix
+        args["maximumSizeInBytes"] = max_size_bytes
+    args["addRandomSuffix"] = add_random_suffix
     if cache_control_max_age is not None:
-        payload["cacheControlMaxAge"] = cache_control_max_age
+        args["cacheControlMaxAge"] = cache_control_max_age
+    args["validUntil"] = valid_until_ms
 
-    payload_json = json.dumps(payload, separators=(",", ":"))
+    payload_json = json.dumps(args, separators=(",", ":"))
     payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
 
-    sig = hmac.new(
-        secret.encode("utf-8"),
+    # HMAC-SHA256 con rw_token COMPLETO como clave (no solo la parte secret)
+    secured_key = hmac.new(
+        rw_token.encode("utf-8"),
         payload_b64.encode("ascii"),
         hashlib.sha256,
     ).hexdigest()
 
-    return f"{TOKEN_PREFIX_CLIENT}{store_id}_{sig}.{payload_b64}"
+    # base64(`${securedKey}.${payload}`) — todo junto, NO `sig.payload` literal
+    combined = f"{secured_key}.{payload_b64}"
+    combined_b64 = base64.b64encode(combined.encode("utf-8")).decode("ascii")
+
+    return f"{TOKEN_PREFIX_CLIENT}{store_id}_{combined_b64}"
 
 
 # Tipos MIME aceptados para los uploads de audio
