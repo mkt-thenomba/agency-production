@@ -264,6 +264,21 @@ textarea {
 .drop-hint-small { font-size: 12px; }
 .filename-display { margin-top: 10px; color: var(--ok); font-weight: 600; font-size: 13px; }
 
+.audio-dropzone {
+  border-color: var(--rojo);
+  background: linear-gradient(180deg, #fdf6e3 0%, #f9eecf 100%);
+}
+.audio-dropzone:hover, .audio-dropzone.drag-over {
+  background: #f5e6c0;
+  border-color: var(--navy);
+}
+.audio-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--tinta-soft);
+  font-style: italic;
+}
+
 .actions-row {
   display: flex; align-items: center; gap: 14px;
 }

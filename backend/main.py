@@ -6,7 +6,7 @@ from typing import Optional
 
 import json as json_lib
 
-from fastapi import FastAPI, HTTPException, Depends, Request, Response, Form
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, Form, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ from .auth import (
 )
 from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
+from . import assemblyai_client
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -346,6 +347,278 @@ def process_transcript(slug: str, payload: dict):
 
         except Exception as e:
             logger.exception("Fallo en process_transcript stream")
+            try:
+                if video is not None:
+                    video.status = "error"
+                    video.error_message = f"{type(e).__name__}: {e}"
+                    db.commit()
+            except Exception:
+                pass
+            yield _sse({"stage": "error", "error": f"{type(e).__name__}: {e}"})
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# Tamaño máximo aceptado para el upload de audio (Vercel Pro ~100 MB).
+MAX_AUDIO_BYTES = 100 * 1024 * 1024
+
+
+@app.post("/api/creators/{slug}/process-audio")
+async def process_audio(
+    slug: str,
+    file: UploadFile = File(...),
+    title_hint: str = Form(""),
+    type_hint: str = Form(""),
+):
+    """Streaming SSE: upload AssemblyAI → poll → build transcript → Claude → render → save.
+    Tramos de progreso:
+      0→2   recibido en backend
+      2→10  uploading a AssemblyAI
+      10→55 AssemblyAI transcribiendo (poll)
+      55→90 Claude streaming
+      90→97 render
+      97→100 save
+    """
+
+    # Leemos el audio en memoria. UploadFile en Starlette ya hace spooling
+    # a disco para archivos > 1 MB, así que para 100 MB esto está bien.
+    raw_bytes = await file.read()
+    audio_size = len(raw_bytes)
+    if audio_size == 0:
+        raise HTTPException(400, "Archivo vacío")
+    if audio_size > MAX_AUDIO_BYTES:
+        raise HTTPException(
+            413,
+            f"Archivo demasiado grande: {audio_size/1024/1024:.1f} MB "
+            f"(máx {MAX_AUDIO_BYTES/1024/1024:.0f} MB). Exporta a MP3 a 128 kbps."
+        )
+
+    content_type = file.content_type or "application/octet-stream"
+    original_filename = file.filename or "audio.mp3"
+
+    def event_stream():
+        db: Session = SessionLocal()
+        video = None
+        try:
+            yield _sse({"stage": "received", "progress": 2,
+                        "message": f"Recibido {original_filename} ({audio_size/1024/1024:.1f} MB)"})
+
+            c = db.query(Creator).filter(Creator.slug == slug).first()
+            if not c:
+                yield _sse({"stage": "error", "error": "Creator no encontrado"})
+                return
+
+            # ─── Subir a AssemblyAI ───
+            yield _sse({"stage": "uploading", "progress": 4,
+                        "message": "Subiendo audio a AssemblyAI…"})
+            try:
+                upload_url = assemblyai_client.upload_audio(
+                    raw_bytes, content_type=content_type)
+            except Exception as e:
+                yield _sse({"stage": "error",
+                            "error": f"AssemblyAI upload falló: {e}"})
+                return
+            yield _sse({"stage": "uploaded", "progress": 10,
+                        "message": "Audio subido. Lanzando transcripción…"})
+
+            # ─── Submit transcript job ───
+            try:
+                transcript_id = assemblyai_client.submit_transcript(
+                    upload_url, language_code="es")
+            except Exception as e:
+                yield _sse({"stage": "error",
+                            "error": f"AssemblyAI submit falló: {e}"})
+                return
+
+            # ─── Poll hasta completed (10→55%) ───
+            # poll_until_done es bloqueante, así que aquí emitimos manualmente
+            import time as _time
+            start = _time.time()
+            last_emitted_pct = 10
+            transcript_data = None
+            while True:
+                if _time.time() - start > 600:
+                    yield _sse({"stage": "error",
+                                "error": "Timeout esperando AssemblyAI (>10 min)"})
+                    return
+                try:
+                    data = assemblyai_client.get_transcript(transcript_id)
+                except Exception as e:
+                    yield _sse({"stage": "error", "error": f"Poll falló: {e}"})
+                    return
+                status = data.get("status", "unknown")
+                elapsed = _time.time() - start
+                if status == "queued":
+                    pct = 10
+                    msg = "En cola en AssemblyAI…"
+                elif status == "processing":
+                    audio_dur = data.get("audio_duration") or 60
+                    expected = max(20, audio_dur * 0.5)
+                    pct = 10 + min(43, (elapsed / expected) * 43)
+                    msg = f"AssemblyAI transcribiendo… ({int(elapsed)}s)"
+                elif status == "completed":
+                    pct = 55
+                    msg = "Transcripción terminada"
+                    transcript_data = data
+                elif status == "error":
+                    err = data.get("error") or "AssemblyAI devolvió error"
+                    yield _sse({"stage": "error",
+                                "error": f"Transcripción falló: {err}"})
+                    return
+                else:
+                    pct = last_emitted_pct
+                    msg = f"Estado: {status}"
+
+                # Emite cada cambio significativo de % o cada poll si processing
+                if pct - last_emitted_pct >= 1 or status == "completed":
+                    last_emitted_pct = pct
+                    yield _sse({"stage": f"assemblyai_{status}",
+                                "progress": round(pct, 1), "message": msg})
+
+                if status == "completed":
+                    break
+                _time.sleep(3)
+
+            # ─── Construir transcript con [MM:SS] ───
+            yield _sse({"stage": "transcript_built", "progress": 56,
+                        "message": "Componiendo transcripción con timestamps"})
+            parsed, duration_s = assemblyai_client.build_transcript_lines(
+                transcript_data)
+            duration_str = format_mmss(duration_s) if duration_s > 0 else "—"
+            if not parsed.strip():
+                yield _sse({"stage": "error",
+                            "error": "AssemblyAI no devolvió texto"})
+                return
+
+            # ─── Metadatos y creación de Video ───
+            cfg = c.config or {}
+            title = clean_title_from_input(title_hint or original_filename)
+            vtype = type_hint or detect_type(
+                title_hint or original_filename,
+                cfg.get("type_keywords", {}),
+                cfg.get("default_type", "historia"),
+            )
+            existing = [row[0] for row in
+                        db.query(Video.code).filter(Video.creator_id == c.id).all()]
+            code = (extract_code(title_hint or original_filename, c.code_prefix)
+                    or next_available_code(existing, c.code_prefix))
+            if code in existing:
+                code = next_available_code(existing, c.code_prefix)
+            slug_v = slugify(title)
+
+            yield _sse({"stage": "saving", "progress": 58,
+                        "message": f"Reservando registro {code}"})
+
+            video = Video(
+                creator_id=c.id, code=code, slug=slug_v, title=title, type=vtype,
+                duration=duration_str, status="processing",
+                transcript=parsed, transcript_source="assemblyai",
+                suggested_publish_at=suggest_publish_at(
+                    vtype, cfg.get("publishing_schedule", {})),
+            )
+            db.add(video); db.commit(); db.refresh(video)
+            for tpl in c.checklist_template or []:
+                db.add(ChecklistItem(
+                    video_id=video.id, item_key=tpl["key"], done=False))
+            db.commit()
+
+            # ─── Claude streaming (60 → 90%) ───
+            yield _sse({"stage": "claude_start", "progress": 60,
+                        "message": "Llamando a Claude…"})
+
+            from anthropic import Anthropic
+            from .claude_client import _extract_json, REQUIRED_KEYS
+
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                yield _sse({"stage": "error",
+                            "error": "ANTHROPIC_API_KEY no configurada"})
+                video.status = "error"; db.commit()
+                return
+
+            client = Anthropic(api_key=api_key)
+            model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+            user_msg = c.user_template.format(
+                code=code, title=title, type=vtype,
+                duration=duration_str, transcript=parsed,
+            )
+            EXPECTED_CHARS = 9000
+            paquete = None
+            last_err = None
+            for attempt in range(2):
+                accumulated = []
+                last_emit = 0
+                try:
+                    with client.messages.stream(
+                        model=model, max_tokens=16000,
+                        system=c.system_prompt,
+                        messages=[{"role": "user", "content": user_msg}],
+                    ) as stream:
+                        for text_chunk in stream.text_stream:
+                            accumulated.append(text_chunk)
+                            chars = sum(len(x) for x in accumulated)
+                            if chars - last_emit >= 200:
+                                last_emit = chars
+                                pct = 60 + min(30, (chars / EXPECTED_CHARS) * 30)
+                                yield _sse({
+                                    "stage": "claude_streaming",
+                                    "progress": round(pct, 1),
+                                    "chars": chars,
+                                    "message": f"Claude generando… ({chars} caracteres)",
+                                })
+
+                    raw = "".join(accumulated)
+                    paquete = _extract_json(raw)
+                    missing = [k for k in REQUIRED_KEYS if k not in paquete]
+                    if missing:
+                        raise ValueError(f"Faltan claves: {missing}")
+                    if not isinstance(paquete.get("midform"), list) \
+                       or not isinstance(paquete.get("shorts"), list):
+                        raise ValueError("midform/shorts no son listas")
+                    break
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Stream intento {attempt + 1}: {e}")
+                    if attempt < 1:
+                        yield _sse({"stage": "retrying", "progress": 60,
+                                    "message": "JSON inválido, reintentando…"})
+
+            if paquete is None:
+                raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            yield _sse({"stage": "rendering", "progress": 92,
+                        "message": "Renderizando entregables"})
+            artifacts = render_all(code, vtype, duration_str, paquete,
+                                   cfg.get("thumb_templates", {}))
+
+            yield _sse({"stage": "saving_final", "progress": 97,
+                        "message": "Guardando en base de datos"})
+            video.paquete_json = paquete
+            video.paquete_md = artifacts["paquete_md"]
+            video.descripcion_txt = artifacts["descripcion"]
+            video.cortes_csv = artifacts["cortes_csv"]
+            video.miniatura_txt = artifacts["miniatura"]
+            video.status = "done"
+            db.commit(); db.refresh(video)
+
+            yield _sse({
+                "stage": "done", "progress": 100,
+                "message": f"PAQUETE generado: {video.code}",
+                "video": _video_to_dict(video, include_artifacts=True),
+            })
+
+        except Exception as e:
+            logger.exception("Fallo en process_audio stream")
             try:
                 if video is not None:
                     video.status = "error"

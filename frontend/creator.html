@@ -37,8 +37,9 @@
       </div>
 
       <div class="tabs">
+        <button class="tab-btn" data-tab="audio">▸ Subir audio MP3/M4A/WAV</button>
         <button class="tab-btn active" data-tab="paste">Pegar transcripción</button>
-        <button class="tab-btn" data-tab="upload">Arrastrar JSON de AssemblyAI</button>
+        <button class="tab-btn" data-tab="upload">JSON / SRT / TXT</button>
       </div>
 
       <div class="tab-panel" data-tab-panel="paste">
@@ -51,6 +52,15 @@
           <div class="drop-hint-small">o haz clic para seleccionar</div>
           <div id="filename-display" class="filename-display"></div>
         </div>
+      </div>
+      <div class="tab-panel hidden" data-tab-panel="audio">
+        <div id="audio-dropzone" class="dropzone-small audio-dropzone">
+          <input type="file" id="audio-input" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden />
+          <div class="drop-title-small">Arrastra el audio</div>
+          <div class="drop-hint-small">MP3 · M4A · WAV · AAC · OGG · FLAC · hasta 100 MB</div>
+          <div id="audio-filename" class="filename-display"></div>
+        </div>
+        <p class="audio-hint">Lo transcribe AssemblyAI en español. Para audios &gt; 30 min recomendado exportar a MP3 a 128 kbps para que el archivo entre y la transcripción vaya rápida.</p>
       </div>
 
       <div class="actions-row">

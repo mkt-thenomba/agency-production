@@ -24,6 +24,13 @@ const progressDetail = $("#progress-detail");
 
 const STAGE_LABELS = {
   parsing: "Parseando transcripción",
+  received: "Audio recibido",
+  uploading: "Subiendo a AssemblyAI",
+  uploaded: "Audio subido",
+  assemblyai_queued: "En cola en AssemblyAI",
+  assemblyai_processing: "AssemblyAI transcribiendo",
+  assemblyai_completed: "Transcripción terminada",
+  transcript_built: "Transcripción compuesta",
   saving: "Reservando registro",
   claude_start: "Llamando a Claude",
   claude_streaming: "Claude generando…",
@@ -37,6 +44,7 @@ const STAGE_LABELS = {
 let creator = null;
 let checklistTemplate = [];
 let uploadedFileContent = null;
+let uploadedAudioFile = null;  // File object para el flujo audio
 let activeTab = "paste";
 
 init();
@@ -53,6 +61,7 @@ async function init() {
     renderHeader();
     bindTabs();
     bindDropzone();
+    bindAudioDropzone();
     bindProcess();
     bindRefresh();
     await refreshVideos();
@@ -123,26 +132,77 @@ async function handleFile(file) {
   if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/, "");
 }
 
-function bindProcess() {
-  processBtn.addEventListener("click", async () => {
-    let transcript = "";
-    if (activeTab === "paste") transcript = textarea.value.trim();
-    else transcript = (uploadedFileContent || "").trim();
+function bindAudioDropzone() {
+  const audioZone = $("#audio-dropzone");
+  const audioInput = $("#audio-input");
+  const audioName = $("#audio-filename");
+  if (!audioZone || !audioInput) return;
 
-    if (!transcript) {
-      statusLine.textContent = "Necesitas pegar o subir una transcripción.";
-      statusLine.classList.add("error");
+  audioZone.addEventListener("click", () => audioInput.click());
+  audioInput.addEventListener("change", () => {
+    if (audioInput.files[0]) acceptAudio(audioInput.files[0]);
+  });
+  ["dragenter", "dragover"].forEach(ev =>
+    audioZone.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      audioZone.classList.add("drag-over");
+    })
+  );
+  ["dragleave", "drop"].forEach(ev =>
+    audioZone.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      audioZone.classList.remove("drag-over");
+    })
+  );
+  audioZone.addEventListener("drop", (e) => {
+    if (e.dataTransfer.files[0]) acceptAudio(e.dataTransfer.files[0]);
+  });
+
+  function acceptAudio(file) {
+    const MAX_MB = 100;
+    const sizeMB = file.size / 1024 / 1024;
+    if (sizeMB > MAX_MB) {
+      audioName.textContent = `⚠️ ${file.name} pesa ${sizeMB.toFixed(1)} MB. Máximo ${MAX_MB} MB. Exporta a MP3 a 128 kbps.`;
+      audioName.style.color = "var(--error)";
+      uploadedAudioFile = null;
       return;
     }
+    audioName.style.color = "";
+    audioName.textContent = `Audio cargado: ${file.name} (${sizeMB.toFixed(1)} MB · ${file.type || "tipo desconocido"})`;
+    uploadedAudioFile = file;
+    if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/, "");
+  }
+}
 
-    statusLine.classList.remove("error", "success");
-    statusLine.textContent = "";
-    processBtn.disabled = true;
+function bindProcess() {
+  processBtn.addEventListener("click", async () => {
+    let fetchPromise;
 
-    showProgress("Iniciando…", 0, "");
-
-    try {
-      const res = await fetch(`/api/creators/${slug}/process`, {
+    if (activeTab === "audio") {
+      if (!uploadedAudioFile) {
+        statusLine.textContent = "Arrastra un audio MP3/M4A/WAV en la zona azul.";
+        statusLine.classList.add("error");
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", uploadedAudioFile);
+      fd.append("title_hint", titleInput.value.trim());
+      fd.append("type_hint", typeSelect.value || "");
+      fetchPromise = fetch(`/api/creators/${slug}/process-audio`, {
+        method: "POST",
+        headers: { "Accept": "text/event-stream" },
+        body: fd,
+      });
+    } else {
+      const transcript = (activeTab === "paste"
+                          ? textarea.value
+                          : uploadedFileContent || "").trim();
+      if (!transcript) {
+        statusLine.textContent = "Necesitas pegar, subir transcript o cargar un audio.";
+        statusLine.classList.add("error");
+        return;
+      }
+      fetchPromise = fetch(`/api/creators/${slug}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
         body: JSON.stringify({
@@ -151,6 +211,15 @@ function bindProcess() {
           type_hint: typeSelect.value || "",
         }),
       });
+    }
+
+    statusLine.classList.remove("error", "success");
+    statusLine.textContent = "";
+    processBtn.disabled = true;
+    showProgress("Iniciando…", 0, "");
+
+    try {
+      const res = await fetchPromise;
       if (!res.ok || !res.body) {
         const txt = await res.text();
         throw new Error(`${res.status}: ${txt}`);
@@ -166,8 +235,6 @@ function bindProcess() {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
-        // Procesa cada bloque "data: {...}\n\n"
         let idx;
         while ((idx = buffer.indexOf("\n\n")) !== -1) {
           const block = buffer.slice(0, idx);
@@ -200,7 +267,10 @@ function bindProcess() {
       textarea.value = "";
       titleInput.value = "";
       uploadedFileContent = null;
+      uploadedAudioFile = null;
       filenameDisplay.textContent = "";
+      const audioName = $("#audio-filename");
+      if (audioName) audioName.textContent = "";
       await refreshVideos(finalVideo.id);
       setTimeout(() => progressBlock.classList.add("hidden"), 2500);
 
