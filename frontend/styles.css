@@ -359,6 +359,69 @@ textarea {
   color: var(--crema);
 }
 
+/* ───── Edición inline de título/código ───── */
+.video-title-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.title-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--tinta-soft);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.video-header:hover .title-edit-btn { opacity: 0.6; }
+.title-edit-btn:hover {
+  opacity: 1 !important;
+  background: var(--dorado);
+  color: var(--navy);
+}
+.video-id[data-role="edit-code"] { cursor: pointer; }
+.video-id[data-role="edit-code"]:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--dorado);
+}
+
+.title-edit-input,
+.code-edit-input {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+  background: white;
+  border: 1px solid var(--dorado);
+  border-radius: 4px;
+  padding: 4px 8px;
+  outline: none;
+}
+.title-edit-input { flex: 1; min-width: 220px; }
+.code-edit-input {
+  width: 70px;
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: var(--rojo);
+  font-weight: 700;
+}
+.title-edit-input:focus,
+.code-edit-input:focus {
+  border-color: var(--rojo);
+  box-shadow: 0 0 0 3px rgba(199, 32, 39, 0.15);
+}
+.title-edit-input:disabled,
+.code-edit-input:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .btn-ghost {
   background: transparent; color: var(--navy);
   border: 1px solid var(--navy);

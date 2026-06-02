@@ -438,8 +438,11 @@ function renderCard(v, expanded) {
   const header = document.createElement("div");
   header.className = "video-header";
   header.innerHTML = `
-    <div class="video-id">${escapeHtml(v.code)}</div>
-    <div class="video-title">${escapeHtml(v.title)}</div>
+    <div class="video-id" data-role="edit-code" title="Click para editar código">${escapeHtml(v.code)}</div>
+    <div class="video-title-wrap">
+      <span class="video-title" data-role="title-text">${escapeHtml(v.title)}</span>
+      <button class="title-edit-btn" data-role="edit-title" title="Editar título">✎</button>
+    </div>
     <div class="video-meta">
       <span class="badge ${v.type}">${escapeHtml(v.type)}</span>
       <span>${escapeHtml(v.duration)}</span>
@@ -447,6 +450,17 @@ function renderCard(v, expanded) {
     </div>
     <div class="expand-icon">▾</div>
   `;
+
+  // Editar título (lápiz)
+  header.querySelector('[data-role="edit-title"]').addEventListener("click", (e) => {
+    e.stopPropagation();
+    startInlineEdit(header, v, "title");
+  });
+  // Editar código (click en el V##)
+  header.querySelector('[data-role="edit-code"]').addEventListener("click", (e) => {
+    e.stopPropagation();
+    startInlineEdit(header, v, "code");
+  });
 
   const body = document.createElement("div");
   body.className = "video-body";
@@ -773,6 +787,78 @@ function buildChecklistBlock(v) {
 
   checklistBlock.appendChild(actions);
   return checklistBlock;
+}
+
+async function startInlineEdit(headerEl, video, field) {
+  // field: "title" | "code"
+  const targetEl = headerEl.querySelector(
+    field === "title" ? '[data-role="title-text"]' : '[data-role="edit-code"]'
+  );
+  if (!targetEl) return;
+  const original = field === "title" ? video.title : video.code;
+
+  // Crea input que reemplaza el span/div
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = original;
+  input.className = field === "title" ? "title-edit-input" : "code-edit-input";
+  input.maxLength = field === "title" ? 200 : 20;
+
+  const placeholder = document.createElement("span");
+  targetEl.replaceWith(placeholder);
+  placeholder.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let saved = false;
+  async function commit() {
+    if (saved) return; saved = true;
+    const newValue = input.value.trim();
+    if (!newValue || newValue === original) {
+      revert(); return;
+    }
+    input.disabled = true;
+    try {
+      const body = field === "title" ? { title: newValue } : { code: newValue };
+      const res = await fetch(`/api/videos/${video.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        alert("No se pudo guardar: " + err);
+        revert(); return;
+      }
+      // Actualiza UI sin re-render completo
+      fullVideoCache.delete(video.id);
+      if (field === "title") video.title = newValue;
+      else video.code = newValue;
+      const restored = document.createElement(field === "title" ? "span" : "div");
+      restored.className = field === "title" ? "video-title" : "video-id";
+      restored.dataset.role = field === "title" ? "title-text" : "edit-code";
+      if (field === "code") restored.title = "Click para editar código";
+      restored.textContent = newValue;
+      input.replaceWith(restored);
+      restored.addEventListener("click", (e) => {
+        e.stopPropagation();
+        startInlineEdit(headerEl, video, field);
+      });
+    } catch (err) {
+      alert("Error: " + err.message);
+      revert();
+    }
+  }
+  function revert() {
+    input.replaceWith(targetEl);
+  }
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commit(); }
+    else if (e.key === "Escape") { e.preventDefault(); saved = true; revert(); }
+  });
+  input.addEventListener("blur", commit);
+  input.addEventListener("click", (e) => e.stopPropagation());
 }
 
 function updateProgress(videoId) {

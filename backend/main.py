@@ -950,6 +950,40 @@ def delete_video(video_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted_code": code}
 
 
+@app.patch("/api/videos/{video_id}")
+def update_video(video_id: int, payload: dict, db: Session = Depends(get_db)):
+    """Actualiza campos editables del vídeo: por ahora título y/o código."""
+    v = db.query(Video).filter(Video.id == video_id).first()
+    if not v:
+        raise HTTPException(404, "Vídeo no encontrado")
+
+    new_title = (payload.get("title") or "").strip()
+    new_code = (payload.get("code") or "").strip()
+
+    if new_title and new_title != v.title:
+        if len(new_title) > 200:
+            raise HTTPException(400, "Título demasiado largo (máx 200)")
+        v.title = new_title
+        v.slug = slugify(new_title)
+
+    if new_code and new_code != v.code:
+        if len(new_code) > 20:
+            raise HTTPException(400, "Código demasiado largo")
+        # Comprueba unicidad por creator
+        existing = db.query(Video).filter(
+            Video.creator_id == v.creator_id,
+            Video.code == new_code,
+            Video.id != v.id,
+        ).first()
+        if existing:
+            raise HTTPException(409, f"El código {new_code} ya existe en este creator")
+        v.code = new_code
+
+    db.commit()
+    db.refresh(v)
+    return _video_to_dict(v)
+
+
 FILE_MAP = {
     "PAQUETE.md": ("paquete_md", "text/markdown"),
     "transcripcion.txt": ("transcript", "text/plain"),
