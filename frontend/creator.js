@@ -184,14 +184,34 @@ function bindProcess() {
         statusLine.classList.add("error");
         return;
       }
-      const fd = new FormData();
-      fd.append("file", uploadedAudioFile);
-      fd.append("title_hint", titleInput.value.trim());
-      fd.append("type_hint", typeSelect.value || "");
-      fetchPromise = fetch(`/api/creators/${slug}/process-audio`, {
+      statusLine.classList.remove("error", "success");
+      statusLine.textContent = "";
+      processBtn.disabled = true;
+      showProgress("Subiendo a Vercel Blob…", 0, "");
+
+      let blobUrl;
+      try {
+        blobUrl = await uploadToVercelBlob(uploadedAudioFile, (pct) => {
+          // 0 → 6% del progreso total mientras sube a Blob
+          showProgress("Subiendo a Vercel Blob", pct * 0.06, `${(pct).toFixed(0)}% del archivo`);
+        });
+      } catch (err) {
+        statusLine.textContent = "Error subiendo a Vercel Blob: " + err.message;
+        statusLine.classList.add("error");
+        showProgress("Error", 100, err.message, "error");
+        processBtn.disabled = false;
+        return;
+      }
+
+      fetchPromise = fetch(`/api/creators/${slug}/process-audio-url`, {
         method: "POST",
-        headers: { "Accept": "text/event-stream" },
-        body: fd,
+        headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+        body: JSON.stringify({
+          blob_url: blobUrl,
+          original_filename: uploadedAudioFile.name,
+          title_hint: titleInput.value.trim(),
+          type_hint: typeSelect.value || "",
+        }),
       });
     } else {
       const transcript = (activeTab === "paste"
@@ -292,6 +312,75 @@ function showProgress(stage, pct, detail, state) {
   progressFill.style.width = `${p}%`;
   progressPct.textContent = `${p.toFixed(1)}%`;
   progressDetail.textContent = detail || "";
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Vercel Blob upload: el navegador sube DIRECTO a Blob storage para
+// saltarse el límite de 4.5 MB de las funciones. Pedimos un token a
+// /api/blob/handle-upload y luego hacemos PUT con XHR (para progreso).
+// ──────────────────────────────────────────────────────────────────
+async function uploadToVercelBlob(file, onProgress) {
+  // Sanea el nombre: solo letras/números/punto/guión y limita longitud
+  const safeName = file.name
+    .replace(/[^\w.\-]+/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 80);
+  const pathname = `audio/${safeName}`;
+
+  // 1) Pedir clientToken al backend
+  const tokenRes = await fetch("/api/blob/handle-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "blob.generate-client-token",
+      payload: {
+        pathname,
+        callbackUrl: null,
+        clientPayload: null,
+        multipart: false,
+      },
+    }),
+  });
+  if (!tokenRes.ok) {
+    const t = await tokenRes.text();
+    throw new Error(`token ${tokenRes.status}: ${t.slice(0, 200)}`);
+  }
+  const tokenData = await tokenRes.json();
+  const clientToken = tokenData.clientToken;
+  if (!clientToken) throw new Error("Backend no devolvió clientToken");
+
+  // 2) PUT directo a Vercel Blob (XHR para tener barra de progreso real)
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `https://blob.vercel-storage.com/${pathname}`);
+    xhr.setRequestHeader("authorization", `Bearer ${clientToken}`);
+    xhr.setRequestHeader("x-api-version", "7");
+    xhr.setRequestHeader("x-content-type", file.type || "application/octet-stream");
+    xhr.setRequestHeader("x-access", "public");
+    xhr.setRequestHeader("x-add-random-suffix", "1");
+    xhr.setRequestHeader("x-multipart", "0");
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress((e.loaded / e.total) * 100);
+      }
+    });
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (!data.url) throw new Error("Blob sin campo url");
+          resolve(data.url);
+        } catch (e) {
+          reject(new Error("Respuesta de Blob inválida: " + e.message));
+        }
+      } else {
+        reject(new Error(`Blob ${xhr.status}: ${xhr.responseText.slice(0, 250)}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Error de red subiendo a Blob"));
+    xhr.send(file);
+  });
 }
 
 function bindRefresh() {

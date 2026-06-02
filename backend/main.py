@@ -21,6 +21,7 @@ from .auth import (
 from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
 from . import assemblyai_client
+from . import vercel_blob
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -619,6 +620,294 @@ async def process_audio(
 
         except Exception as e:
             logger.exception("Fallo en process_audio stream")
+            try:
+                if video is not None:
+                    video.status = "error"
+                    video.error_message = f"{type(e).__name__}: {e}"
+                    db.commit()
+            except Exception:
+                pass
+            yield _sse({"stage": "error", "error": f"{type(e).__name__}: {e}"})
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Vercel Blob client-upload: bypass del límite 4.5MB de las funciones
+# ──────────────────────────────────────────────────────────────────────
+
+@app.post("/api/blob/handle-upload")
+async def blob_handle_upload(request: Request):
+    """Endpoint que firma tokens de cliente para @vercel/blob/client SDK.
+    El SDK del navegador POSTea aquí pidiendo permiso, devolvemos un JWT
+    custom firmado con BLOB_READ_WRITE_TOKEN. Luego el navegador sube
+    DIRECTO a blob.vercel-storage.com sin pasar por nosotros."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Body JSON inválido")
+
+    msg_type = body.get("type")
+    payload = body.get("payload") or {}
+
+    if msg_type == "blob.generate-client-token":
+        pathname = (payload.get("pathname") or "").strip()
+        if not pathname:
+            raise HTTPException(400, "Falta pathname")
+        # Por seguridad obligamos prefijo audio/ — evita que alguien use
+        # nuestros tokens para subir cualquier otra cosa
+        if not pathname.startswith("audio/"):
+            pathname = f"audio/{pathname}"
+
+        try:
+            client_token = vercel_blob.generate_client_token(
+                pathname=pathname,
+                allowed_content_types=vercel_blob.AUDIO_ALLOWED_CONTENT_TYPES,
+                max_size_bytes=vercel_blob.MAX_AUDIO_BYTES,
+                add_random_suffix=True,
+                cache_control_max_age=60,
+            )
+        except vercel_blob.BlobConfigError as e:
+            logger.error(f"Blob config: {e}")
+            raise HTTPException(500, str(e))
+
+        return {
+            "type": "blob.generate-client-token",
+            "clientToken": client_token,
+        }
+
+    if msg_type == "blob.upload-completed":
+        # No usamos el callback (procesamos por URL después). 200 OK.
+        return {"response": "ok"}
+
+    raise HTTPException(400, f"Tipo no soportado: {msg_type}")
+
+
+@app.post("/api/creators/{slug}/process-audio-url")
+async def process_audio_url(slug: str, payload: dict):
+    """Streaming SSE: recibe `blob_url` (ya subido por el navegador a Vercel Blob)
+    y dispara el flujo AssemblyAI → Claude → render → save.
+
+    Body JSON: { blob_url, title_hint?, type_hint?, original_filename? }
+    """
+    blob_url = (payload.get("blob_url") or "").strip()
+    if not blob_url:
+        raise HTTPException(400, "Falta blob_url")
+    if not (blob_url.startswith("https://") and
+            ".public.blob.vercel-storage.com/" in blob_url):
+        raise HTTPException(400, "blob_url no es una URL de Vercel Blob válida")
+
+    title_hint = payload.get("title_hint") or ""
+    type_hint = payload.get("type_hint") or ""
+    original_filename = payload.get("original_filename") or "audio.mp3"
+
+    def event_stream():
+        db: Session = SessionLocal()
+        video = None
+        try:
+            yield _sse({"stage": "received", "progress": 3,
+                        "message": "URL del audio recibida"})
+
+            c = db.query(Creator).filter(Creator.slug == slug).first()
+            if not c:
+                yield _sse({"stage": "error", "error": "Creator no encontrado"})
+                return
+
+            # Submit transcript job (AssemblyAI descarga el audio desde la URL pública)
+            yield _sse({"stage": "uploading", "progress": 6,
+                        "message": "Enviando URL a AssemblyAI…"})
+            try:
+                transcript_id = assemblyai_client.submit_transcript(
+                    blob_url, language_code="es")
+            except Exception as e:
+                yield _sse({"stage": "error",
+                            "error": f"AssemblyAI submit falló: {e}"})
+                return
+
+            # Poll hasta completed (6 → 55%)
+            import time as _time
+            start = _time.time()
+            last_emitted_pct = 6
+            transcript_data = None
+            while True:
+                if _time.time() - start > 600:
+                    yield _sse({"stage": "error",
+                                "error": "Timeout esperando AssemblyAI (>10 min)"})
+                    return
+                try:
+                    data = assemblyai_client.get_transcript(transcript_id)
+                except Exception as e:
+                    yield _sse({"stage": "error",
+                                "error": f"Poll falló: {e}"})
+                    return
+                status = data.get("status", "unknown")
+                elapsed = _time.time() - start
+                if status == "queued":
+                    pct = 8
+                    msg = "En cola en AssemblyAI…"
+                elif status == "processing":
+                    audio_dur = data.get("audio_duration") or 60
+                    expected = max(20, audio_dur * 0.5)
+                    pct = 8 + min(45, (elapsed / expected) * 45)
+                    msg = f"AssemblyAI transcribiendo… ({int(elapsed)}s)"
+                elif status == "completed":
+                    pct = 55
+                    msg = "Transcripción terminada"
+                    transcript_data = data
+                elif status == "error":
+                    err = data.get("error") or "AssemblyAI devolvió error"
+                    yield _sse({"stage": "error",
+                                "error": f"Transcripción falló: {err}"})
+                    return
+                else:
+                    pct = last_emitted_pct
+                    msg = f"Estado: {status}"
+
+                if pct - last_emitted_pct >= 1 or status == "completed":
+                    last_emitted_pct = pct
+                    yield _sse({"stage": f"assemblyai_{status}",
+                                "progress": round(pct, 1), "message": msg})
+
+                if status == "completed":
+                    break
+                _time.sleep(3)
+
+            yield _sse({"stage": "transcript_built", "progress": 56,
+                        "message": "Componiendo transcripción con timestamps"})
+            parsed, duration_s = assemblyai_client.build_transcript_lines(
+                transcript_data)
+            duration_str = format_mmss(duration_s) if duration_s > 0 else "—"
+            if not parsed.strip():
+                yield _sse({"stage": "error",
+                            "error": "AssemblyAI no devolvió texto"})
+                return
+
+            # Metadatos
+            cfg = c.config or {}
+            title = clean_title_from_input(title_hint or original_filename)
+            vtype = type_hint or detect_type(
+                title_hint or original_filename,
+                cfg.get("type_keywords", {}),
+                cfg.get("default_type", "historia"),
+            )
+            existing = [row[0] for row in
+                        db.query(Video.code).filter(Video.creator_id == c.id).all()]
+            code = (extract_code(title_hint or original_filename, c.code_prefix)
+                    or next_available_code(existing, c.code_prefix))
+            if code in existing:
+                code = next_available_code(existing, c.code_prefix)
+            slug_v = slugify(title)
+
+            yield _sse({"stage": "saving", "progress": 58,
+                        "message": f"Reservando registro {code}"})
+            video = Video(
+                creator_id=c.id, code=code, slug=slug_v, title=title, type=vtype,
+                duration=duration_str, status="processing",
+                transcript=parsed, transcript_source="assemblyai+blob",
+                suggested_publish_at=suggest_publish_at(
+                    vtype, cfg.get("publishing_schedule", {})),
+            )
+            db.add(video); db.commit(); db.refresh(video)
+            for tpl in c.checklist_template or []:
+                db.add(ChecklistItem(
+                    video_id=video.id, item_key=tpl["key"], done=False))
+            db.commit()
+
+            # Claude streaming (60 → 90%)
+            yield _sse({"stage": "claude_start", "progress": 60,
+                        "message": "Llamando a Claude…"})
+            from anthropic import Anthropic
+            from .claude_client import _extract_json, REQUIRED_KEYS
+
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                yield _sse({"stage": "error",
+                            "error": "ANTHROPIC_API_KEY no configurada"})
+                video.status = "error"; db.commit()
+                return
+
+            client = Anthropic(api_key=api_key)
+            model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+            user_msg = c.user_template.format(
+                code=code, title=title, type=vtype,
+                duration=duration_str, transcript=parsed,
+            )
+            EXPECTED_CHARS = 9000
+            paquete = None
+            last_err = None
+            for attempt in range(2):
+                accumulated = []
+                last_emit = 0
+                try:
+                    with client.messages.stream(
+                        model=model, max_tokens=16000,
+                        system=c.system_prompt,
+                        messages=[{"role": "user", "content": user_msg}],
+                    ) as stream:
+                        for text_chunk in stream.text_stream:
+                            accumulated.append(text_chunk)
+                            chars = sum(len(x) for x in accumulated)
+                            if chars - last_emit >= 200:
+                                last_emit = chars
+                                pct = 60 + min(30, (chars / EXPECTED_CHARS) * 30)
+                                yield _sse({
+                                    "stage": "claude_streaming",
+                                    "progress": round(pct, 1),
+                                    "chars": chars,
+                                    "message": f"Claude generando… ({chars} caracteres)",
+                                })
+                    raw = "".join(accumulated)
+                    paquete = _extract_json(raw)
+                    missing = [k for k in REQUIRED_KEYS if k not in paquete]
+                    if missing:
+                        raise ValueError(f"Faltan claves: {missing}")
+                    if not isinstance(paquete.get("midform"), list) \
+                       or not isinstance(paquete.get("shorts"), list):
+                        raise ValueError("midform/shorts no son listas")
+                    break
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Stream intento {attempt + 1}: {e}")
+                    if attempt < 1:
+                        yield _sse({"stage": "retrying", "progress": 60,
+                                    "message": "JSON inválido, reintentando…"})
+
+            if paquete is None:
+                raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            yield _sse({"stage": "rendering", "progress": 92,
+                        "message": "Renderizando entregables"})
+            artifacts = render_all(code, vtype, duration_str, paquete,
+                                   cfg.get("thumb_templates", {}))
+
+            yield _sse({"stage": "saving_final", "progress": 97,
+                        "message": "Guardando en base de datos"})
+            video.paquete_json = paquete
+            video.paquete_md = artifacts["paquete_md"]
+            video.descripcion_txt = artifacts["descripcion"]
+            video.cortes_csv = artifacts["cortes_csv"]
+            video.miniatura_txt = artifacts["miniatura"]
+            video.status = "done"
+            db.commit(); db.refresh(video)
+
+            yield _sse({
+                "stage": "done", "progress": 100,
+                "message": f"PAQUETE generado: {video.code}",
+                "video": _video_to_dict(video, include_artifacts=True),
+            })
+
+        except Exception as e:
+            logger.exception("Fallo en process_audio_url stream")
             try:
                 if video is not None:
                     video.status = "error"
