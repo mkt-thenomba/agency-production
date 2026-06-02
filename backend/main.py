@@ -938,6 +938,18 @@ def get_video(video_id: int, db: Session = Depends(get_db)):
     return _video_to_dict(v, include_artifacts=True)
 
 
+@app.delete("/api/videos/{video_id}")
+def delete_video(video_id: int, db: Session = Depends(get_db)):
+    """Elimina un vídeo (cascade borra su checklist). Útil para limpiar errores."""
+    v = db.query(Video).filter(Video.id == video_id).first()
+    if not v:
+        raise HTTPException(404, "Vídeo no encontrado")
+    code = v.code
+    db.delete(v)
+    db.commit()
+    return {"ok": True, "deleted_code": code}
+
+
 FILE_MAP = {
     "PAQUETE.md": ("paquete_md", "text/markdown"),
     "transcripcion.txt": ("transcript", "text/plain"),

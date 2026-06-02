@@ -738,6 +738,7 @@ function buildChecklistBlock(v) {
   }
   const actions = document.createElement("div");
   actions.className = "checklist-actions";
+
   const clearBtn = document.createElement("button");
   clearBtn.className = "btn-ghost";
   clearBtn.textContent = "Limpiar checklist";
@@ -749,6 +750,27 @@ function buildChecklistBlock(v) {
     await refreshVideos(v.id);
   });
   actions.appendChild(clearBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "btn-danger";
+  deleteBtn.textContent = "🗑 Eliminar vídeo";
+  deleteBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const ok = confirm(
+      `¿Eliminar definitivamente ${v.code} (${v.title})?\n\n` +
+      "Se borra el vídeo, su PAQUETE y su checklist. No se puede deshacer."
+    );
+    if (!ok) return;
+    const res = await fetch(`/api/videos/${v.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Error al eliminar: " + (await res.text()));
+      return;
+    }
+    fullVideoCache.delete(v.id);
+    await refreshVideos();
+  });
+  actions.appendChild(deleteBtn);
+
   checklistBlock.appendChild(actions);
   return checklistBlock;
 }
