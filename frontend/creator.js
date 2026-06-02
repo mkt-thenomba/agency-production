@@ -349,16 +349,22 @@ async function uploadToVercelBlob(file, onProgress) {
   const clientToken = tokenData.clientToken;
   if (!clientToken) throw new Error("Backend no devolvió clientToken");
 
-  // 2) PUT directo a Vercel Blob (XHR para tener barra de progreso real)
+  // El SDK envía PUT a https://vercel.com/api/blob/?pathname=... (no a
+  // blob.vercel-storage.com, esa URL es solo para LEER blobs públicos).
+  // Headers verificados contra @vercel/blob v1.x.
+  const storeIdMatch = clientToken.match(/^vercel_blob_client_([^_]+)_/);
+  const storeId = storeIdMatch ? storeIdMatch[1] : "";
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `https://blob.vercel-storage.com/${pathname}`);
+    const params = new URLSearchParams({ pathname });
+    xhr.open("PUT", `https://vercel.com/api/blob/?${params.toString()}`);
     xhr.setRequestHeader("authorization", `Bearer ${clientToken}`);
-    xhr.setRequestHeader("x-api-version", "7");
+    xhr.setRequestHeader("x-api-version", "12");
+    xhr.setRequestHeader("x-vercel-blob-store-id", storeId);
+    xhr.setRequestHeader("x-vercel-blob-access", "public");
     xhr.setRequestHeader("x-content-type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-access", "public");
-    xhr.setRequestHeader("x-add-random-suffix", "1");
-    xhr.setRequestHeader("x-multipart", "0");
+    xhr.setRequestHeader("x-content-length", String(file.size));
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && onProgress) {
