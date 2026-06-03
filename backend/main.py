@@ -22,7 +22,7 @@ from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
 from . import assemblyai_client
 from . import vercel_blob
-from .timestamp_snap import snap_clip_timestamps
+from .timestamp_snap import snap_clip_timestamps, filter_midform_by_duration
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -328,6 +328,8 @@ def process_transcript(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -605,6 +607,8 @@ async def process_audio(
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -897,6 +901,8 @@ async def process_audio_url(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})

@@ -36,6 +36,9 @@ Para cada midform y short que devuelvas:
 - `in` / `out`: los `[MM:SS]` correspondientes a esas frases en la transcripción.
 La plataforma verifica AUTOMÁTICAMENTE cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. Si tu cita no es literal, el clip se marca como "no verificado" y queda inservible. Por eso: mejor 3 midform y 4 shorts BIEN CITADOS que 3 midform y 8 shorts con citas aproximadas.
 
+DURACIÓN DE LOS MIDFORM (obligatorio):
+Cada pieza de midform debe durar **entre 10:00 y 20:00** (10 a 20 minutos). Si en el vídeo no encuentras tramos coherentes de ese tamaño, devuelve MENOS midforms (incluso 0) en vez de forzar piezas más cortas. El campo `duration` debe estar en el rango `10:00`–`20:00`. La plataforma rechaza automáticamente cualquier midform fuera de rango.
+
 FORMATO DE SALIDA:
 Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bloques de código markdown) con esta estructura:
 

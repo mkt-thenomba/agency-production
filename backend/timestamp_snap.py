@@ -163,3 +163,49 @@ def snap_clip_timestamps(paquete: dict, transcript: str) -> dict:
                 clip["duration"] = _fmt_ts(max(0, ts_out - ts_in))
 
     return paquete
+
+
+def _clip_duration_seconds(clip: dict) -> Optional[int]:
+    """Duración del clip en segundos. Prefiere in/out, si no usa el campo duration."""
+    in_ts = _parse_ts_str(clip.get("in", ""))
+    out_ts = _parse_ts_str(clip.get("out", ""))
+    if in_ts is not None and out_ts is not None and out_ts > in_ts:
+        return out_ts - in_ts
+    return _parse_ts_str(clip.get("duration", ""))
+
+
+def filter_midform_by_duration(paquete: dict,
+                               min_seconds: int = 600,
+                               max_seconds: int = 1200) -> dict:
+    """Elimina midforms fuera del rango [min, max] segundos.
+    Default 600-1200 = 10-20 minutos. Los rechazados quedan en
+    `paquete["_rejected_midform"]` para auditoría."""
+    midform = paquete.get("midform")
+    if not isinstance(midform, list):
+        return paquete
+
+    valid: list[dict] = []
+    rejected: list[dict] = []
+    for clip in midform:
+        dur = _clip_duration_seconds(clip)
+        if dur is None:
+            clip["_rejected_reason"] = "duración no parseable"
+            rejected.append(clip)
+            continue
+        if dur < min_seconds:
+            clip["_rejected_reason"] = (
+                f"duración {dur}s < mínimo {min_seconds}s ({min_seconds//60} min)"
+            )
+            rejected.append(clip)
+        elif dur > max_seconds:
+            clip["_rejected_reason"] = (
+                f"duración {dur}s > máximo {max_seconds}s ({max_seconds//60} min)"
+            )
+            rejected.append(clip)
+        else:
+            valid.append(clip)
+
+    paquete["midform"] = valid
+    if rejected:
+        paquete["_rejected_midform"] = rejected
+    return paquete
