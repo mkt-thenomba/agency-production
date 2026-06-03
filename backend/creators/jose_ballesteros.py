@@ -30,6 +30,13 @@ LÍNEAS ROJAS:
 4. Timestamps SIEMPRE en formato MM:SS exactos, NUNCA rangos vagos.
 5. El título 60-65 caracteres, claro y servicial. Si hay frase del autor citable, considérala.
 
+PRECISIÓN DE TIMESTAMPS DE CLIPS (crítico):
+Para cada midform y short que devuelvas:
+- `phrase_in`: CITA LITERAL palabra-por-palabra de la PRIMERA frase del clip tal y como aparece en la transcripción. NO la parafrasees, NO la resumas, NO la traduzcas. Cópiala exacta del texto que recibes.
+- `phrase_out`: CITA LITERAL de la ÚLTIMA frase del clip.
+- `in` / `out`: los `[MM:SS]` correspondientes a esas frases en la transcripción.
+La plataforma verifica AUTOMÁTICAMENTE cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. Si tu cita no es literal, el clip se marca como "no verificado" y queda inservible. Por eso: mejor 3 midform y 4 shorts BIEN CITADOS que 3 midform y 8 shorts con citas aproximadas.
+
 FORMATO DE SALIDA:
 Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bloques de código markdown) con esta estructura:
 

@@ -648,10 +648,21 @@ function renderClip(clip, kind, num, isShort = false) {
   wrap.className = "clip-card";
   const header = document.createElement("div");
   header.className = "clip-header";
+  const inVerified = clip._in_verified === true;
+  const outVerified = clip._out_verified === true;
+  let verifyBadge = "";
+  if (inVerified && outVerified) {
+    verifyBadge = `<span class="ts-badge ok" title="Timestamps verificados contra la transcripción">✓ verificado</span>`;
+  } else if (inVerified || outVerified) {
+    verifyBadge = `<span class="ts-badge partial" title="Solo uno de los dos timestamps verificado">⚠ parcial</span>`;
+  } else {
+    verifyBadge = `<span class="ts-badge bad" title="No se encontró la frase citada en la transcripción — el timestamp puede no ser correcto">⚠ sin verificar</span>`;
+  }
   header.innerHTML = `
     <strong>${kind} ${num}</strong>
     <span class="clip-title">${escapeHtml(clip.title || "")}</span>
     <span class="clip-times">${escapeHtml(clip.in || "")} → ${escapeHtml(clip.out || "")} · ${escapeHtml(clip.duration || "")}</span>
+    ${verifyBadge}
   `;
   wrap.appendChild(header);
 

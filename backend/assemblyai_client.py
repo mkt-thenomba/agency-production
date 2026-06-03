@@ -132,7 +132,7 @@ def _format_mmss(seconds: float) -> str:
 
 
 def build_transcript_lines(transcript_data: dict,
-                           chunk_seconds: float = 6.0) -> tuple[str, float]:
+                           chunk_seconds: float = 4.0) -> tuple[str, float]:
     """Construye 'texto con timestamps [MM:SS]' a partir de la respuesta de AssemblyAI.
     Devuelve (texto, duration_seconds).
     Estrategia: agrupa words consecutivos en bloques de ~6s o ~80 chars."""

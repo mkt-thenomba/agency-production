@@ -22,6 +22,7 @@ from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
 from . import assemblyai_client
 from . import vercel_blob
+from .timestamp_snap import snap_clip_timestamps
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -324,6 +325,10 @@ def process_transcript(slug: str, payload: dict):
             if paquete is None:
                 raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
 
+            # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
+            # la phrase_in citada — Claude a veces inventa timestamps.
+            paquete = snap_clip_timestamps(paquete, parsed)
+
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
             artifacts = render_all(code, vtype, duration_str, paquete,
@@ -596,6 +601,10 @@ async def process_audio(
 
             if paquete is None:
                 raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
+            # la phrase_in citada — Claude a veces inventa timestamps.
+            paquete = snap_clip_timestamps(paquete, parsed)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -884,6 +893,10 @@ async def process_audio_url(slug: str, payload: dict):
 
             if paquete is None:
                 raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
+            # la phrase_in citada — Claude a veces inventa timestamps.
+            paquete = snap_clip_timestamps(paquete, parsed)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
