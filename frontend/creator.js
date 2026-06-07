@@ -688,6 +688,14 @@ function renderClip(clip, kind, num, isShort = false) {
       compact: true,
     }));
   }
+  if (clip.thumb_prompt) {
+    wrap.appendChild(copyBlock({
+      label: "Prompt imagen (image-gen, EN)",
+      content: clip.thumb_prompt,
+      multiline: true,
+      compact: true,
+    }));
+  }
   return wrap;
 }
 

@@ -37,6 +37,16 @@ Para cada midform y short que devuelvas:
 - `in` / `out`: los `[MM:SS]` correspondientes a esas frases en la transcripción.
 La plataforma verifica AUTOMÁTICAMENTE cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. Si tu cita no es literal, el clip se marca como "no verificado" y queda inservible. Por eso: mejor 3 midform y 4 shorts BIEN CITADOS que 3 midform y 8 shorts con citas aproximadas.
 
+IMAGEN POR MIDFORM (obligatorio):
+Cada midform debe llevar un `thumb_prompt` propio (NO reutilices el thumb_prompt del vídeo largo). Reglas:
+- En INGLÉS, listo para pegar en GPT image-gen / DALL-E / Midjourney
+- VISUALMENTE ESPECÍFICO al contenido CONCRETO del clip. Si el clip habla de la "cultura del selfie" → móvil iluminado en escritorio oscuro con notificaciones; si habla de las tres grandes preguntas → reloj de arena + brújula + pluma; si habla del séptimo sobre → sobres lacrados sobre madera con cera roja; si habla de servicio → manos abiertas sosteniendo una llave dorada.
+- Estética coherente con el canal: sobria, profesional, cálida. Navy + dorado + cream, con luz de hora dorada por ventana. NUNCA neon corporativo, nunca stock-photo.
+- Sin texto en la imagen, sin personas mirando a cámara, sin logos, sin libros con título legible.
+- Incluye al final: `16:9 aspect ratio, 1280x720`.
+- Lado izquierdo o derecho despejado para superponer título cuando proceda (alterna por clip).
+La idea: alguien viendo solo la imagen entiende de qué va el midform.
+
 DURACIÓN DE LOS MIDFORM (obligatorio):
 Cada pieza de midform debe durar **entre 10:00 y 20:00** (10 a 20 minutos). Si en el vídeo no encuentras tramos coherentes de ese tamaño, devuelve MENOS midforms (incluso 0) en vez de forzar piezas más cortas. El campo `duration` debe estar en el rango `10:00`–`20:00`. La plataforma rechaza automáticamente cualquier midform fuera de rango.
 
@@ -55,7 +65,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   "thumb_textB": "string · 3-5 palabras MAYÚSCULAS",
   "thumb_prompt": "string · prompt completo en inglés para GPT image-gen con plantilla adaptada al tema",
   "midform": [
-    {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"..."},
+    {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
     {...}, {...}
   ],
   "shorts": [

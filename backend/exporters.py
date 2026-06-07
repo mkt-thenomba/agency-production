@@ -172,7 +172,14 @@ def render_paquete_md(code: str, type_: str, duration: str,
         out.append(f"- **IN:** `{m.get('in','')}` · **OUT:** `{m.get('out','')}` · **Duración:** {m.get('duration','')}")
         out.append(f"- **Frase entrada:** *\"{m.get('phrase_in','')}\"*")
         out.append(f"- **Frase salida:** *\"{m.get('phrase_out','')}\"*")
-        out.append(f"- **Miniatura:** `{m.get('burn_text','')}`\n")
+        out.append(f"- **Miniatura:** `{m.get('burn_text','')}`")
+        thumb = (m.get("thumb_prompt") or "").strip()
+        if thumb:
+            out.append("- **Prompt imagen (en):**")
+            out.append("```")
+            out.append(thumb)
+            out.append("```")
+        out.append("")  # línea en blanco
 
     out.append("## J. SHORTS\n")
     for i, s in enumerate(paquete.get("shorts", []) or [], 1):
