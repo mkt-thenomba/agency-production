@@ -175,11 +175,11 @@ def _clip_duration_seconds(clip: dict) -> Optional[int]:
 
 
 def filter_midform_by_duration(paquete: dict,
-                               min_seconds: int = 600,
-                               max_seconds: int = 1200) -> dict:
+                               min_seconds: int = 300,
+                               max_seconds: int = 720) -> dict:
     """Elimina midforms fuera del rango [min, max] segundos.
-    Default 600-1200 = 10-20 minutos. Los rechazados quedan en
-    `paquete["_rejected_midform"]` para auditoría."""
+    Default 300-720 = 5-12 minutos (calibrado para vídeos de ~20 min de media).
+    Los rechazados quedan en `paquete["_rejected_midform"]` para auditoría."""
     midform = paquete.get("midform")
     if not isinstance(midform, list):
         return paquete

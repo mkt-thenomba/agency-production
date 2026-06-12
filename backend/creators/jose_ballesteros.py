@@ -48,7 +48,7 @@ Cada midform debe llevar un `thumb_prompt` propio (NO reutilices el thumb_prompt
 La idea: alguien viendo solo la imagen entiende de qué va el midform.
 
 DURACIÓN DE LOS MIDFORM (obligatorio):
-Cada pieza de midform debe durar **entre 10:00 y 20:00** (10 a 20 minutos). Si en el vídeo no encuentras tramos coherentes de ese tamaño, devuelve MENOS midforms (incluso 0) en vez de forzar piezas más cortas. El campo `duration` debe estar en el rango `10:00`–`20:00`. La plataforma rechaza automáticamente cualquier midform fuera de rango.
+Cada pieza de midform debe durar **entre 05:00 y 12:00** (5 a 12 minutos). Pensados para vídeos de ~20 min de media: un midform debe ser un tramo SUSTANCIAL (no un short largo) pero no la mitad del episodio. Si en el vídeo no encuentras tramos coherentes de ese tamaño, devuelve MENOS midforms (incluso 0) en vez de forzar piezas fuera de rango. El campo `duration` debe estar en `05:00`–`12:00`. La plataforma rechaza automáticamente cualquier midform fuera de rango.
 
 FORMATO DE SALIDA:
 Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bloques de código markdown) con esta estructura:

@@ -328,8 +328,8 @@ def process_transcript(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
+            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -607,8 +607,8 @@ async def process_audio(
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
+            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -901,8 +901,8 @@ async def process_audio_url(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 10-20 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete, min_seconds=600, max_seconds=1200)
+            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
+            paquete = filter_midform_by_duration(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
