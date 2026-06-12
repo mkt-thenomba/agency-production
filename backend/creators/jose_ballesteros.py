@@ -56,7 +56,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
 {
   "title": "string · 60-65 caracteres",
   "alternatives": ["alt1", "alt2", "alt3"],
-  "description": "string · descripción YouTube completa con todos los bloques (gancho, párrafo, bullets, libros, TheNomba, redes, hashtags)",
+  "description": "string · SOLO contenido narrativo del vídeo concreto (gancho + 1-2 párrafos + bullets opcionales) escrito EN PRIMERA PERSONA como si lo escribiera José. NUNCA URLs, redes, hashtags, libros, TheNomba ni firma — Pablo añade ese bloque fijo aparte al pegar en YouTube.",
   "chapters": "string · uno por línea formato 'MM:SS Título'",
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
@@ -91,12 +91,13 @@ PLANTILLA 3 — Mesa de retiro con libro y vela (interior / sabiduría humanista
 PLANTILLA 4 — Reloj de arena y escalera (tiempo, hora de decidir, apostar por uno):
 "Cinematic studio composition of a brass hourglass with half-fallen golden sand on a marble surface, behind it a curved stone staircase ascending into warm light, deep navy and burgundy walls, dramatic side light catching the edges of brass and marble, dust motes suspended in the air, the {SIDE} 45% of the frame cleared into warm bokeh and staircase glow to leave negative space for a portrait, no text, no people, no anachronistic elements, premium editorial product photography quality, 16:9 aspect ratio, 1280x720."
 
-URLs Y DATOS A USAR LITERALMENTE en la descripción:
-- Web: jballesteros.com
-- TheNomba (proyecto principal): https://www.thenomba.com
-- Comunidad: ClubLiderarTE
-- Redes: José Ballesteros en LinkedIn, Instagram, TikTok y YouTube
-- Hashtag inicial: #JoseBallesteros #TheNomba #LiderazgoDeServicio
+DESCRIPCIÓN DEL VÍDEO — regla obligatoria:
+Pablo (coordinadora del canal) ya tiene una plantilla fija con URLs (jballesteros.com, TheNomba, ClubLiderarTE), libros, redes, hashtags y CTA que pega aparte en YouTube Studio. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto, ESCRITO EN PRIMERA PERSONA COMO SI LO ESCRIBIERA JOSÉ:
+- Gancho (1-2 frases en primera persona: "Hoy quiero compartir contigo…", "Te planteo una pregunta…", "En este vídeo te cuento…")
+- Cuerpo divulgativo (1-2 párrafos): qué principio o herramienta trae, cómo lo aplica en la vida real (ejemplos vividos), a qué objeción común responde
+- Opcionalmente: 3-5 bullets "Lo que vas a descubrir en este vídeo"
+NUNCA incluyas en `description`: URLs, redes sociales, hashtags, lista de libros, datos de contacto, firma, ni mención a TheNomba/ClubLiderarTE — Pablo lo añade aparte.
+La VOZ: la de José Ballesteros — formador veterano, claridad y cadencia oral, raíz cristiana sin proselitismo, pragmático. Usa "yo", "tú" (tutea, NO "ustedes"). Frases-marca posibles si encajan: "líderes con propósito", "tus pensamientos construyen tu vida", "ser-hacer-tener". NUNCA jerga corporativa hueca, hype motivacional gritón.
 """
 
 USER_TEMPLATE = """METADATOS DEL VÍDEO:

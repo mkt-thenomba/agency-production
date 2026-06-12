@@ -50,7 +50,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
 {
   "title": "string · 60-65 caracteres",
   "alternatives": ["alt1", "alt2", "alt3"],
-  "description": "string · descripción YouTube completa con todos los bloques (gancho, párrafo, bullets, libros, TheNomba, redes, hashtags)",
+  "description": "string · SOLO contenido narrativo del vídeo concreto (gancho + 1-2 párrafos + bullets opcionales) escrito EN PRIMERA PERSONA como si lo escribiera Marcelo. NUNCA URLs, redes, hashtags, libros, TheNomba ni firma — Pablo añade ese bloque fijo aparte al pegar en YouTube.",
   "chapters": "string · uno por línea formato 'MM:SS Título'",
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
@@ -71,12 +71,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   ]
 }
 
-URLs Y DATOS A USAR LITERALMENTE en la descripción:
-- TheNomba: https://www.thenomba.com/aliados-nomba-oficial/marcelo-gullo
-- Web: marcelogulloomodeo.com
-- Email: marcelogullocontact@gmail.com
-- Redes: X @GulloOficial, Instagram @marcelogullooficial, Facebook Marcelo Gullo Omodeo
-- Hashtag inicial: #MarceloGullo
+DESCRIPCIÓN DEL VÍDEO — regla obligatoria:
+Pablo (coordinadora del canal) ya tiene una plantilla fija con URLs, libros, redes sociales, hashtags y la CTA de TheNomba que pega aparte en YouTube Studio. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto, ESCRITO EN PRIMERA PERSONA COMO SI LO ESCRIBIERA MARCELO:
+- Gancho (1-2 frases en primera persona: "Hoy desmonto…", "En este vídeo os explico por qué…", "Vengo a contaros…")
+- Cuerpo divulgativo (1-2 párrafos): qué tesis defiende, qué evidencias presenta, contra qué relato común
+- Opcionalmente: 3-5 bullets "Lo que vas a descubrir en este vídeo"
+NUNCA incluyas en `description`: URLs (ni thenomba.com, ni marcelogulloomodeo.com), redes sociales, hashtags, lista de libros, email, datos de contacto, firma institucional. Pablo lo añade aparte con su plantilla.
+La VOZ: la de Marcelo Gullo — serio, intelectual, polémico sin sensacionalismo. Usa "yo", "os" o "ustedes". Frases con gravitas. NUNCA "Hola amigos", "Mi opinión sobre…", "Reflexiones sobre…".
 """
 
 USER_TEMPLATE = """METADATOS DEL VÍDEO:

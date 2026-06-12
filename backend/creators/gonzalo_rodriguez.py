@@ -55,7 +55,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
 {
   "title": "string · 60-65 caracteres",
   "alternatives": ["alt1", "alt2", "alt3"],
-  "description": "string · descripción YouTube completa con todos los bloques (gancho, párrafo, bullets, libros, TheNomba, redes, hashtags)",
+  "description": "string · SOLO contenido narrativo del vídeo concreto (gancho + 1-2 párrafos + bullets opcionales) escrito EN PRIMERA PERSONA como si lo escribiera Gonzalo. NUNCA URLs, redes, hashtags, libros, TheNomba ni firma — Pablo añade ese bloque fijo aparte al pegar en YouTube.",
   "chapters": "string · uno por línea formato 'MM:SS Título'",
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
@@ -90,12 +90,13 @@ PLANTILLA 3 — Castro al crepúsculo (Hispania céltica, batallas, comunidad gu
 PLANTILLA 4 — Lobo y runas (destino, soledad del guerrero, llamada espiritual):
 "Cinematic close mid-shot of a lone grey Iberian wolf standing on a misty mountain ridge at dawn{DETAIL}, ancient stone with carved runes in foreground partially obscured by frost, breath visible in cold air, deep navy fading to dorado at the horizon, fir forest blurred far below, the {SIDE} 45% cleared into open sky and mist to leave negative space for a portrait, no text, no people, no modern intrusion, IMAX-quality wide shot, museum-grade photographic realism, 16:9 aspect ratio, 1280x720."
 
-URLs Y DATOS A USAR LITERALMENTE en la descripción:
-- Web: gonzalorodriguez.me
-- Marca/cursos: La Forja y La Espada
-- TheNomba: https://www.thenomba.com/aliados-nomba-oficial/gonzalo-rodriguez
-- Redes: La Forja y La Espada en X, YouTube, Instagram y Facebook
-- Hashtag inicial: #LaForjaYLaEspada
+DESCRIPCIÓN DEL VÍDEO — regla obligatoria:
+Pablo (coordinadora del canal) ya tiene una plantilla fija con URLs (gonzalorodriguez.me, TheNomba), libros, redes, hashtags y cursos de La Forja y La Espada que pega aparte en YouTube Studio. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto, ESCRITO EN PRIMERA PERSONA COMO SI LO ESCRIBIERA GONZALO:
+- Gancho (1-2 frases en primera persona: "Hoy os traigo…", "Quiero contaros una historia que…", "Vengo a la forja con…")
+- Cuerpo divulgativo (1-2 párrafos): qué mito o episodio histórico abre, qué hilo conduce, qué lección o resonancia trae al presente
+- Opcionalmente: 3-5 bullets "Lo que vas a descubrir en este vídeo"
+NUNCA incluyas en `description`: URLs, redes sociales, hashtags, lista de libros, datos de contacto, firma, ni el bloque "La Forja y La Espada" como CTA — todo eso lo añade Pablo aparte.
+La VOZ: la de Gonzalo Rodríguez — historiador-bardo con cadencia oral, gravitas, frases cortas citables. Usa "yo", "os", "vosotros". Tono profético-iniciático pero accesible. NUNCA "Hola amigos", "espero que os guste", clickbait.
 """
 
 USER_TEMPLATE = """METADATOS DEL VÍDEO:
