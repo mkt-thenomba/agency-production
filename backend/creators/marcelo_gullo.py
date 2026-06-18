@@ -44,16 +44,13 @@ La idea: alguien viendo solo la imagen entiende de qué va el midform.
 DURACIÓN DE LOS MIDFORM (obligatorio):
 Cada pieza de midform debe durar **entre 05:00 y 12:00** (5 a 12 minutos). Pensados para vídeos de ~20 min de media: un midform debe ser un tramo SUSTANCIAL (no un short largo) pero no la mitad del episodio. Si en el vídeo no encuentras tramos coherentes de ese tamaño, devuelve MENOS midforms (incluso 0) en vez de forzar piezas fuera de rango. El campo `duration` debe estar en `05:00`–`12:00`. La plataforma rechaza automáticamente cualquier midform fuera de rango.
 
-FORMATO DE SALIDA:
-Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bloques de código markdown) con esta estructura:
+FORMATO DE SALIDA (importante — entregables custom de Marcelo):
+Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chapters`, NO incluyas `tags`, NO incluyas `pinned_comment`, NO incluyas `shorts`):
 
 {
   "title": "string · 60-65 caracteres",
   "alternatives": ["alt1", "alt2", "alt3"],
   "description": "string · SOLO contenido narrativo del vídeo concreto (gancho + 1-2 párrafos + bullets opcionales) escrito EN PRIMERA PERSONA como si lo escribiera Marcelo. NUNCA URLs, redes, hashtags, libros, TheNomba ni firma — Pablo añade ese bloque fijo aparte al pegar en YouTube.",
-  "chapters": "string · uno por línea formato 'MM:SS Título'",
-  "tags": "string · 20-25 tags separados por coma",
-  "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
   "thumb_template": 1-4 (1=biblioteca solemne, 2=épico pictórico, 3=mapa geopolítico, 4=pirámide al amanecer),
   "thumb_textA": "string · 3-5 palabras MAYÚSCULAS",
   "thumb_textB": "string · 3-5 palabras MAYÚSCULAS",
@@ -62,14 +59,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
     {...}, {...}
   ],
-  "shorts": [
-    {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","duration":"MM:SS","burn_text":"...","why_works":"..."},
-    {...} (6-8 piezas)
-  ],
   "alerts": [
     {"timestamp":"MM:SS – MM:SS","section":"...","risk":"...","adjustment":"..."}
   ]
 }
+
+NO devuelvas las claves `chapters`, `tags`, `pinned_comment` ni `shorts`. Esos canales los gestiona Pablo aparte (shorts vía OpusClips, sin capítulos ni comentario fijado ni tags en el largo).
 
 DESCRIPCIÓN DEL VÍDEO — regla obligatoria:
 Pablo (coordinadora del canal) ya tiene una plantilla fija con URLs, libros, redes sociales, hashtags y la CTA de TheNomba que pega aparte en YouTube Studio. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto, ESCRITO EN PRIMERA PERSONA COMO SI LO ESCRIBIERA MARCELO:
@@ -90,7 +85,7 @@ TRANSCRIPCIÓN DEL AUDIO (con timestamps MM:SS absolutos):
 
 {transcript}
 
-Genera el PAQUETE completo. Recuerda: JSON puro, sin envoltorios.
+Genera el PAQUETE completo. Recuerda: JSON puro, sin envoltorios. NO incluyas chapters, NO incluyas tags, NO incluyas pinned_comment, NO incluyas shorts.
 """
 
 THUMB_TEMPLATES = {
@@ -124,18 +119,15 @@ CHECKLIST_TEMPLATE = [
     # Producción
     {"key": "miniatura_a", "phase": "Producción", "label": "Miniatura A"},
     {"key": "miniatura_b", "phase": "Producción", "label": "Miniatura B"},
-    {"key": "enviar_editor", "phase": "Producción", "label": "Enviar a editor"},
+    {"key": "enviar_editor", "phase": "Producción", "label": "Enviar a editor (largo + midform)"},
     {"key": "revisar_largo", "phase": "Producción", "label": "Revisar largo"},
     {"key": "revisar_midform", "phase": "Producción", "label": "Revisar midform"},
-    {"key": "revisar_shorts", "phase": "Producción", "label": "Revisar shorts"},
     # Publicación
     {"key": "subir_largo", "phase": "Publicación", "label": "Subir largo"},
-    {"key": "pegar_metadatos", "phase": "Publicación", "label": "Pegar descripción/tags/capítulos"},
-    {"key": "configurar_ab", "phase": "Publicación", "label": "Configurar A/B"},
+    {"key": "pegar_metadatos", "phase": "Publicación", "label": "Pegar descripción + plantilla fija"},
+    {"key": "configurar_ab", "phase": "Publicación", "label": "Configurar A/B miniaturas"},
     {"key": "programar_publicacion", "phase": "Publicación", "label": "Programar publicación"},
-    {"key": "pegar_comentario", "phase": "Publicación", "label": "Pegar comentario fijado"},
     {"key": "programar_midform", "phase": "Publicación", "label": "Programar midform"},
-    {"key": "programar_shorts", "phase": "Publicación", "label": "Programar shorts"},
     # Post-publicación
     {"key": "notificar_sangrador", "phase": "Post-publicación", "label": "Notificar al Sangrador (TheNomba)"},
     {"key": "monitorizar_ctr", "phase": "Post-publicación", "label": "Monitorizar CTR T+6h"},
@@ -162,5 +154,7 @@ MARCELO_GULLO = {
         "default_type": "historia",
         "title_min_chars": 60,
         "title_max_chars": 65,
+        # Marca para frontend/exporters: este creator no genera estos campos
+        "deliverables_skip": ["chapters", "tags", "pinned_comment", "shorts"],
     },
 }

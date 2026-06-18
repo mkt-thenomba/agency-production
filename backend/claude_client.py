@@ -8,10 +8,11 @@ from anthropic import Anthropic
 
 logger = logging.getLogger(__name__)
 
-# Claves siempre exigidas. chapters / pinned_comment / shorts son opcionales:
-# algunos creators (p.ej. Peregrinos en Distopía) no los generan.
+# Claves siempre exigidas. chapters / pinned_comment / shorts / tags son
+# opcionales — varios creators tienen entregables distintos (ej. Marcelo solo
+# title + descripción + miniatura + midform, Peregrinos sin shorts).
 REQUIRED_KEYS = [
-    "title", "alternatives", "description", "tags",
+    "title", "alternatives", "description",
     "thumb_template", "thumb_textA", "thumb_textB",
     "thumb_prompt", "midform", "alerts",
 ]

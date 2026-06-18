@@ -151,8 +151,10 @@ def render_paquete_md(code: str, type_: str, duration: str,
         out.append("## E. CAPÍTULOS")
         out.append(chapters + "\n")
 
-    out.append("## F. TAGS")
-    out.append((paquete.get("tags", "") or "").strip() + "\n")
+    tags = (paquete.get("tags", "") or "").strip()
+    if tags:
+        out.append("## F. TAGS")
+        out.append(tags + "\n")
 
     pinned = (paquete.get("pinned_comment", "") or "").strip()
     if pinned:
