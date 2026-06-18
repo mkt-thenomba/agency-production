@@ -8,10 +8,12 @@ from anthropic import Anthropic
 
 logger = logging.getLogger(__name__)
 
+# Claves siempre exigidas. chapters / pinned_comment / shorts son opcionales:
+# algunos creators (p.ej. Peregrinos en Distopía) no los generan.
 REQUIRED_KEYS = [
-    "title", "alternatives", "description", "chapters", "tags",
-    "pinned_comment", "thumb_template", "thumb_textA", "thumb_textB",
-    "thumb_prompt", "midform", "shorts", "alerts",
+    "title", "alternatives", "description", "tags",
+    "thumb_template", "thumb_textA", "thumb_textB",
+    "thumb_prompt", "midform", "alerts",
 ]
 
 
@@ -146,8 +148,11 @@ def stream_paquete(system_prompt: str, user_template: str, *,
             missing = [k for k in REQUIRED_KEYS if k not in data]
             if missing:
                 raise ValueError(f"Faltan claves: {missing}")
-            if not isinstance(data.get("midform"), list) or not isinstance(data.get("shorts"), list):
-                raise ValueError("midform y shorts deben ser listas")
+            if not isinstance(data.get("midform"), list):
+                raise ValueError("midform debe ser lista")
+            if "shorts" in data and not isinstance(data["shorts"], list):
+                raise ValueError("shorts debe ser lista si está presente")
+            data.setdefault("shorts", [])
             return data
 
         except (json.JSONDecodeError, ValueError) as e:

@@ -590,9 +590,12 @@ async def process_audio(
                     missing = [k for k in REQUIRED_KEYS if k not in paquete]
                     if missing:
                         raise ValueError(f"Faltan claves: {missing}")
-                    if not isinstance(paquete.get("midform"), list) \
-                       or not isinstance(paquete.get("shorts"), list):
-                        raise ValueError("midform/shorts no son listas")
+                    if not isinstance(paquete.get("midform"), list):
+                        raise ValueError("midform no es lista")
+                    # shorts opcional (algunos creators no lo generan)
+                    if "shorts" in paquete and not isinstance(paquete["shorts"], list):
+                        raise ValueError("shorts no es lista")
+                    paquete.setdefault("shorts", [])
                     break
                 except Exception as e:
                     last_err = e
@@ -884,9 +887,12 @@ async def process_audio_url(slug: str, payload: dict):
                     missing = [k for k in REQUIRED_KEYS if k not in paquete]
                     if missing:
                         raise ValueError(f"Faltan claves: {missing}")
-                    if not isinstance(paquete.get("midform"), list) \
-                       or not isinstance(paquete.get("shorts"), list):
-                        raise ValueError("midform/shorts no son listas")
+                    if not isinstance(paquete.get("midform"), list):
+                        raise ValueError("midform no es lista")
+                    # shorts opcional (algunos creators no lo generan)
+                    if "shorts" in paquete and not isinstance(paquete["shorts"], list):
+                        raise ValueError("shorts no es lista")
+                    paquete.setdefault("shorts", [])
                     break
                 except Exception as e:
                     last_err = e

@@ -146,14 +146,18 @@ def render_paquete_md(code: str, type_: str, duration: str,
     out.append((paquete.get("description", "") or "").strip())
     out.append("```\n")
 
-    out.append("## E. CAPÍTULOS")
-    out.append((paquete.get("chapters", "") or "").strip() + "\n")
+    chapters = (paquete.get("chapters", "") or "").strip()
+    if chapters:
+        out.append("## E. CAPÍTULOS")
+        out.append(chapters + "\n")
 
     out.append("## F. TAGS")
     out.append((paquete.get("tags", "") or "").strip() + "\n")
 
-    out.append("## G. COMENTARIO FIJADO")
-    out.append((paquete.get("pinned_comment", "") or "").strip() + "\n")
+    pinned = (paquete.get("pinned_comment", "") or "").strip()
+    if pinned:
+        out.append("## G. COMENTARIO FIJADO")
+        out.append(pinned + "\n")
 
     out.append("## H. MINIATURA")
     tpl = paquete.get("thumb_template", 1)
@@ -181,13 +185,15 @@ def render_paquete_md(code: str, type_: str, duration: str,
             out.append("```")
         out.append("")  # línea en blanco
 
-    out.append("## J. SHORTS\n")
-    for i, s in enumerate(paquete.get("shorts", []) or [], 1):
-        out.append(f"### Short {i} — {s.get('title','')}")
-        out.append(f"- **IN:** `{s.get('in','')}` · **OUT:** `{s.get('out','')}` · **Dur:** {s.get('duration','')}")
-        out.append(f"- **Frase:** *\"{s.get('phrase_in','')}\"*")
-        out.append(f"- **Burn:** `{s.get('burn_text','')}`")
-        out.append(f"- **Por qué funciona:** {s.get('why_works','')}\n")
+    shorts = paquete.get("shorts", []) or []
+    if shorts:
+        out.append("## J. SHORTS\n")
+        for i, s in enumerate(shorts, 1):
+            out.append(f"### Short {i} — {s.get('title','')}")
+            out.append(f"- **IN:** `{s.get('in','')}` · **OUT:** `{s.get('out','')}` · **Dur:** {s.get('duration','')}")
+            out.append(f"- **Frase:** *\"{s.get('phrase_in','')}\"*")
+            out.append(f"- **Burn:** `{s.get('burn_text','')}`")
+            out.append(f"- **Por qué funciona:** {s.get('why_works','')}\n")
 
     out.append("## K. ALERTAS DE MONETIZACIÓN\n")
     alerts = paquete.get("alerts", []) or []
