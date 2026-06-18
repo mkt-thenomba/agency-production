@@ -98,19 +98,6 @@ def auth_status(request: Request):
 
 # ============== Health ==============
 
-@app.post("/api/_admin/delete-creator/{slug}")
-def admin_delete_creator(slug: str, db: Session = Depends(get_db)):
-    """Borra un creator y, por cascade, sus vídeos y checklists.
-    Endpoint temporal — se elimina después de usar."""
-    c = db.query(Creator).filter(Creator.slug == slug).first()
-    if not c:
-        raise HTTPException(404, f"Creator '{slug}' no existe")
-    n_videos = len(c.videos)
-    db.delete(c)
-    db.commit()
-    return {"ok": True, "deleted_slug": slug, "cascaded_videos": n_videos}
-
-
 @app.get("/api/health")
 def health():
     return {"ok": True}
