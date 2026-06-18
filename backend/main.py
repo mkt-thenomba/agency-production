@@ -98,30 +98,6 @@ def auth_status(request: Request):
 
 # ============== Health ==============
 
-@app.get("/api/_admin/reseed")
-def admin_reseed(db: Session = Depends(get_db)):
-    """Re-ejecuta seed_creators y devuelve el resultado para diagnosticar
-    por qué un creator no aparece. Endpoint temporal."""
-    import traceback
-    try:
-        seed_creators()
-        creators = db.query(Creator).all()
-        return {
-            "ok": True,
-            "count": len(creators),
-            "creators": [{"slug": c.slug, "name": c.name} for c in creators],
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "ok": False,
-                "error": f"{type(e).__name__}: {e}",
-                "traceback": traceback.format_exc().splitlines()[-20:],
-            },
-        )
-
-
 @app.get("/api/health")
 def health():
     return {"ok": True}
