@@ -160,7 +160,22 @@ function bindAudioDropzone() {
 
   function acceptAudio(file) {
     const MAX_MB = 100;
+    const MIN_KB = 10;  // por debajo de 10 KB no puede tener audio real
     const sizeMB = file.size / 1024 / 1024;
+    const sizeKB = file.size / 1024;
+
+    if (file.size === 0) {
+      audioName.textContent = `⚠️ ${file.name} está VACÍO (0 bytes). Vuelve a exportar/descargar el audio desde su origen.`;
+      audioName.style.color = "var(--error)";
+      uploadedAudioFile = null;
+      return;
+    }
+    if (sizeKB < MIN_KB) {
+      audioName.textContent = `⚠️ ${file.name} pesa ${sizeKB.toFixed(1)} KB — demasiado pequeño para tener audio real. ¿Se descargó bien?`;
+      audioName.style.color = "var(--error)";
+      uploadedAudioFile = null;
+      return;
+    }
     if (sizeMB > MAX_MB) {
       audioName.textContent = `⚠️ ${file.name} pesa ${sizeMB.toFixed(1)} MB. Máximo ${MAX_MB} MB. Exporta a MP3 a 128 kbps.`;
       audioName.style.color = "var(--error)";
