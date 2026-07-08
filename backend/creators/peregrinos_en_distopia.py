@@ -72,7 +72,7 @@ Para cada midform:
 - `phrase_in`: CITA LITERAL palabra-por-palabra de la PRIMERA frase del clip tal como aparece en la transcripción. NO parafrasear.
 - `phrase_out`: CITA LITERAL de la ÚLTIMA frase del clip.
 - `in` / `out`: los `[MM:SS]` correspondientes a esas frases.
-La plataforma verifica automáticamente cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. Si la cita no es literal, el clip se marca "no verificado" y queda inservible. Mejor 2 midform bien citados que 4 con citas aproximadas.
+La plataforma verifica automáticamente cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. **Si tu cita no es literal, el clip se ELIMINA del PAQUETE — no llega a Pablo.** Regla dura: mejor 2 midform bien citados que 5 con citas aproximadas (serán descartados automáticamente). NUNCA te inventes timestamps ni parafrasees phrase_in "para que suene mejor". Si no puedes localizar la primera y última frase LITERALES en la transcripción, OMITE el clip. La coherencia entre lo que dice el clip y el minuto exacto es sagrada.
 
 DURACIÓN Y CANTIDAD DE MIDFORM (obligatorio):
 Cada pieza debe durar **entre 12:00 y 25:00** (12 a 25 minutos). Diferente al resto del canal porque estas conferencias son largas y filosóficas — un midform debe ser un DESARROLLO ARGUMENTAL COMPLETO, no una viñeta.

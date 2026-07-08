@@ -174,6 +174,35 @@ def _clip_duration_seconds(clip: dict) -> Optional[int]:
     return _parse_ts_str(clip.get("duration", ""))
 
 
+def drop_unverified_clips(paquete: dict) -> dict:
+    """Elimina clips (midform y shorts) cuyo `phrase_in` NO se pudo localizar
+    en la transcripción. Los rechazados se mueven a `_rejected_midform` /
+    `_rejected_shorts` con reason='phrase_in no localizada — timestamp inventado'.
+
+    Regla de Pablo: 'no te inventes nunca nada'. Si Claude no citó literal,
+    el clip no llega al PAQUETE final."""
+    for key, rejected_key in (("midform", "_rejected_midform"),
+                              ("shorts", "_rejected_shorts")):
+        clips = paquete.get(key)
+        if not isinstance(clips, list):
+            continue
+        valid: list[dict] = []
+        rejected: list[dict] = list(paquete.get(rejected_key) or [])
+        for clip in clips:
+            if clip.get("_in_verified") is not True:
+                clip["_rejected_reason"] = (
+                    "phrase_in no localizada en la transcripción — "
+                    "cita no literal, timestamp inventado"
+                )
+                rejected.append(clip)
+            else:
+                valid.append(clip)
+        paquete[key] = valid
+        if rejected:
+            paquete[rejected_key] = rejected
+    return paquete
+
+
 def filter_midform_by_duration(paquete: dict,
                                min_seconds: int = 300,
                                max_seconds: int = 720) -> dict:

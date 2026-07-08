@@ -22,7 +22,7 @@ from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
 from . import assemblyai_client
 from . import vercel_blob
-from .timestamp_snap import snap_clip_timestamps, filter_midform_by_duration
+from .timestamp_snap import snap_clip_timestamps, filter_midform_by_duration, drop_unverified_clips
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -328,6 +328,9 @@ def process_transcript(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # ELIMINA clips cuyo phrase_in no se pudo localizar en la transcripción.
+            # Regla estricta de Pablo: si no está citado literalmente, no llega al PAQUETE.
+            paquete = drop_unverified_clips(paquete)
             # Filtra midforms fuera del rango del creator (default 5-12 min;
             # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
             mf_min = cfg.get("midform_duration_min_seconds", 300)
@@ -613,6 +616,9 @@ async def process_audio(
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # ELIMINA clips cuyo phrase_in no se pudo localizar en la transcripción.
+            # Regla estricta de Pablo: si no está citado literalmente, no llega al PAQUETE.
+            paquete = drop_unverified_clips(paquete)
             # Filtra midforms fuera del rango del creator (default 5-12 min;
             # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
             mf_min = cfg.get("midform_duration_min_seconds", 300)
@@ -913,6 +919,9 @@ async def process_audio_url(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
+            # ELIMINA clips cuyo phrase_in no se pudo localizar en la transcripción.
+            # Regla estricta de Pablo: si no está citado literalmente, no llega al PAQUETE.
+            paquete = drop_unverified_clips(paquete)
             # Filtra midforms fuera del rango del creator (default 5-12 min;
             # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
             mf_min = cfg.get("midform_duration_min_seconds", 300)
