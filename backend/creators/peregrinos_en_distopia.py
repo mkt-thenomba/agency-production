@@ -53,7 +53,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chap
   "alternatives": ["alt 1", "alt 2", "alt 3"],
   "description": "string · SOLO contenido narrativo del vídeo concreto en PRIMERA PERSONA DEL PLURAL (gancho + 1-2 párrafos + bullets opcionales). NUNCA URLs, redes, hashtags, CTA, lista de colaboradores ni firma — Pablo añade ese bloque aparte.",
   "tags": "20-25 tags separados por coma",
-  "thumb_template": 1-4 (1=biblioteca antigua, 2=concha peregrina al amanecer, 3=catedral vs pantalla, 4=retrato pictórico claroscuro),
+  "thumb_template": 1-4 (1=objeto simbólico conceptual, 2=ilustración vectorial, 3=escena surrealista luminosa, 4=bodegón contemporáneo con contraste antiguo–moderno),
   "thumb_textA": "3-5 palabras MAYÚSCULAS",
   "thumb_textB": "3-5 palabras MAYÚSCULAS",
   "thumb_prompt": "prompt completo en INGLÉS, museum-grade, sin texto, sin personas mirando a cámara, 16:9, 1280x720",
@@ -74,25 +74,33 @@ Para cada midform:
 - `in` / `out`: los `[MM:SS]` correspondientes a esas frases.
 La plataforma verifica automáticamente cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. Si la cita no es literal, el clip se marca "no verificado" y queda inservible. Mejor 2 midform bien citados que 4 con citas aproximadas.
 
-DURACIÓN DE LOS MIDFORM (obligatorio):
-Cada pieza entre **05:00 y 12:00**. Pensados para conferencias de ~20-40 min: un midform debe ser un tramo SUSTANCIAL pero no la mitad del episodio. Si no encuentras tramos coherentes en ese rango, devuelve MENOS midforms (incluso 0). La plataforma rechaza automáticamente los fuera de rango.
+DURACIÓN Y CANTIDAD DE MIDFORM (obligatorio):
+Cada pieza debe durar **entre 12:00 y 25:00** (12 a 25 minutos). Diferente al resto del canal porque estas conferencias son largas y filosóficas — un midform debe ser un DESARROLLO ARGUMENTAL COMPLETO, no una viñeta.
+
+Cantidad esperada según duración del audio original:
+- Audio ≤ 45 min → 1-2 midforms de ~15-20 min
+- Audio 45-90 min → 2-3 midforms de ~15-22 min
+- Audio 90-120 min (2h) → **4-5 midforms** de ~18-22 min (caso típico del canal)
+- Audio > 120 min → 5-7 midforms de ~18-25 min
+
+Si no encuentras tramos coherentes en ese rango, devuelve MENOS midforms (incluso 0). La plataforma rechaza automáticamente cualquier midform fuera del rango 12-25 min.
 
 IMAGEN POR MIDFORM (obligatorio):
-Cada midform debe llevar su propio `thumb_prompt` específico al contenido del clip. NO reutilices el del vídeo entero. Estética coherente con el canal: museum-grade, sobria, claroscuro, paleta carmesí + crema + navy. Sin texto en la imagen, sin personas mirando a cámara. Incluye `16:9 aspect ratio, 1280x720`.
+Cada midform debe llevar su propio `thumb_prompt` específico al contenido del clip. NO reutilices el del vídeo entero. Estética coherente con el nuevo lenguaje visual del canal: LUMINOSO, CONCEPTUAL, COLORIDO SIN PASARSE. Filosofía contemporánea, NO historia épica. Cada imagen debe generar CURIOSIDAD y acompañar al título — que solo con verla el espectador quiera saber de qué va. Sin texto en la imagen, sin personas mirando a cámara, sin logos. Incluye `16:9 aspect ratio, 1280x720`.
 
-PLANTILLAS DE MINIATURA (referencia para construir thumb_prompt) — adapta al tema concreto del vídeo, alterna lado izquierdo o derecho despejado para superponer retrato:
+PLANTILLAS DE MINIATURA (referencia para construir thumb_prompt) — adapta al tema concreto del vídeo. Alterna lado izquierdo o derecho despejado para superposición de retrato/título. Preferencia por LUZ NATURAL DE DÍA sobre claroscuro nocturno. Colores presentes pero elegantes (nunca chillones).
 
-PLANTILLA 1 — Biblioteca antigua iluminada (filosofía / tradición occidental / autores clásicos):
-"Editorial photography of a dim oak-paneled university library at dusk{DETAIL}, antique leather-bound books on tall shelves, a single brass desk lamp casting warm amber light on a half-open volume, dust motes suspended in the air, deep burgundy and cream tones, painterly chiaroscuro, the {SIDE} 45% softly out of focus into shadowed bookcases to leave negative space for a portrait, no text, no people, no readable titles, museum-grade editorial quality, 16:9 aspect ratio, 1280x720."
+PLANTILLA 1 — Objeto simbólico conceptual (metáfora filosófica que despierta curiosidad):
+"Editorial conceptual photography of a single symbolic object suspended or centered in soft luminous daylight{DETAIL}, examples adapted to the clip's theme: an open golden birdcage with the bird gone, a labyrinth cast in bronze on a stone plinth, a broken hand mirror with a beam of light passing through, a giant vintage skeleton key floating over a still pool, a marble scale weighing feathers against a book. Warm cream + soft cerulean or sage green background with ONE bold accent color (terracotta, mustard, dusty rose), high-key luminous natural light (never dark chiaroscuro), minimalist composition, magazine-editorial style like The New Yorker or Aeon covers, the {SIDE} 45% deliberately blank in a soft even gradient for portrait overlay space, no text, no people, museum-grade editorial photography, 16:9 aspect ratio, 1280x720."
 
-PLANTILLA 2 — Concha peregrina / paisaje del camino (identidad del proyecto / vocación / comunidad / fe):
-"Cinematic landscape of a misty pilgrim path at dawn{DETAIL}, ancient stone way-marker carrying a single scallop shell carved in relief, low golden light over distant hills and a Romanesque chapel silhouette, parchment cream fog with deep navy shadows in the valleys, the {SIDE} 50% softly faded into mist and dawn sky for negative space, no text, no people, no modern intrusion, painterly photographic realism, 16:9 aspect ratio, 1280x720."
+PLANTILLA 2 — Ilustración vectorial conceptual (concepto claro y legible, muy thumbnail-friendly):
+"Bold conceptual illustration in the style of Christoph Niemann, Malika Favre or Noma Bar{DETAIL}, flat vector shapes, deliberate geometric simplification of a philosophical concept from the clip (examples: mind vs. machine as two overlapping profiles half-mechanical, two silhouettes talking through a wall, a door opening onto a bookshelf, a maze forming the outline of a face, a mirror reflecting a different face). Vibrant but restrained palette: warm cream + terracotta or sage or dusty blue + one saturated accent (cadmium red, ochre, or emerald), generous negative space, no fine detail, editorial poster quality suitable for a book cover, the {SIDE} 50% clean solid color or gradient for portrait/title overlay, no text, no faces with realistic features, 16:9 aspect ratio, 1280x720."
 
-PLANTILLA 3 — Catedral antigua vs pantalla digital (posmodernidad / tecnocracia / biopolítica / control digital):
-"Cinematic interior composition contrasting a Gothic cathedral nave with a wall of cold blue digital screens{DETAIL}, ancient stone columns half-lit by stained-glass colored light meeting flickering screen glow, dust and incense in the warm stone aisle, sterile cold reflections on the other side, deep navy and crimson plus electric cyan accents, the {SIDE} 45% intentionally cleared for negative space, no readable text on screens, no people, museum-grade architectural photography with cinematic conflict, 16:9 aspect ratio, 1280x720."
+PLANTILLA 3 — Escena surrealista luminosa (paradoja visual estilo Magritte moderno):
+"Contemporary surrealist scene in the tradition of Magritte, updated with cinematic photorealism{DETAIL}, examples: a wooden door standing alone in a wheat field at midday, a person from behind whose head is an open book against a clear sky, a chair floating above a still lake reflecting stars during daylight, a giant halved apple revealing a miniature library inside, a suit walking without a body across a beach. Painterly realism with SATURATED but soft palette: sky blue + warm cream + burnt sienna or lavender + one bold accent (rose, gold, teal). Calm natural daylight (never dark or gothic), the {SIDE} 45% receding into a clean sky, gradient or open field for portrait overlay, no text, no anachronistic branding, museum-grade painterly photography, 16:9 aspect ratio, 1280x720."
 
-PLANTILLA 4 — Retrato pictórico al claroscuro (autores concretos: Dostoievski, Nietzsche, Heidegger, etc.):
-"Detail of a baroque portrait in the style of Rembrandt or Caravaggio{DETAIL}, single figure emerging from deep shadow with one quill or open codex catching dramatic side-light, oxblood crimson velvet, warm umber and burnt sienna background, gilded book edge, the {SIDE} 45% receding into deep shadow for negative space, no legible text on the book, museum-grade painterly reproduction, 16:9 aspect ratio, 1280x720."
+PLANTILLA 4 — Bodegón contemporáneo minimalista (contraste antiguo–moderno sobre color plano):
+"Minimalist still-life editorial photography on a single-color paper backdrop{DETAIL}, curated arrangement of two or three philosophically loaded objects that dialogue (examples: a classical marble bust next to a modern smartphone, a stack of open books beside a folded newspaper, an hourglass where the sand becomes pixels, an ancient scroll unrolled next to a QR code, a Roman coin balanced on a credit card). Backdrop: ONE tasteful saturated color chosen by mood (terracotta, sage green, mustard yellow, dusty rose, pale azure). Warm luminous side-lit natural window light, editorial fashion-magazine quality, the {SIDE} 45% is clean solid backdrop for portrait/title overlay, no readable text or logos on the objects, no people, 16:9 aspect ratio, 1280x720."
 
 VOZ DE LA DESCRIPCIÓN — regla obligatoria:
 Pablo ya tiene una plantilla fija con URLs, CTA, redes, hashtags y datos del proyecto que pega aparte en YouTube Studio. Tu `description` debe contener SOLO el contenido narrativo del vídeo concreto, escrito EN PRIMERA PERSONA DEL PLURAL (nosotros):
@@ -118,10 +126,10 @@ Genera el PAQUETE completo. Recuerda: JSON puro, sin envoltorios. NO incluyas ch
 """
 
 THUMB_TEMPLATES = {
-    1: "Biblioteca antigua (filosofía / tradición / autores clásicos)",
-    2: "Concha peregrina / paisaje del camino (vocación / comunidad / fe)",
-    3: "Catedral vs pantalla (posmodernidad / tecnocracia / biopolítica)",
-    4: "Retrato pictórico claroscuro (autor concreto: Dostoievski, Nietzsche…)",
+    1: "Objeto simbólico conceptual (metáfora luminosa que despierta curiosidad)",
+    2: "Ilustración vectorial (Niemann/Favre/Bar · thumbnail legible)",
+    3: "Escena surrealista luminosa (paradoja tipo Magritte moderno)",
+    4: "Bodegón contemporáneo (contraste antiguo–moderno sobre color plano)",
 }
 
 TYPE_KEYWORDS = {
@@ -212,5 +220,8 @@ PEREGRINOS_EN_DISTOPIA = {
         "title_max_chars": 70,
         # Marca para frontend/exporters: este creator no genera estos campos
         "deliverables_skip": ["chapters", "pinned_comment", "shorts"],
+        # Rango de midform específico: conferencias largas de 45min-2h → 12-25 min
+        "midform_duration_min_seconds": 720,   # 12 min
+        "midform_duration_max_seconds": 1500,  # 25 min
     },
 }

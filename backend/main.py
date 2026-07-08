@@ -328,8 +328,11 @@ def process_transcript(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete)
+            # Filtra midforms fuera del rango del creator (default 5-12 min;
+            # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
+            mf_min = cfg.get("midform_duration_min_seconds", 300)
+            mf_max = cfg.get("midform_duration_max_seconds", 720)
+            paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -610,8 +613,11 @@ async def process_audio(
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete)
+            # Filtra midforms fuera del rango del creator (default 5-12 min;
+            # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
+            mf_min = cfg.get("midform_duration_min_seconds", 300)
+            mf_max = cfg.get("midform_duration_max_seconds", 720)
+            paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -907,8 +913,11 @@ async def process_audio_url(slug: str, payload: dict):
             # Reasigna `in`/`out` de cada clip al timestamp REAL donde aparece
             # la phrase_in citada — Claude a veces inventa timestamps.
             paquete = snap_clip_timestamps(paquete, parsed)
-            # Filtra midforms fuera de 5-12 min (Claude a veces no respeta el rango)
-            paquete = filter_midform_by_duration(paquete)
+            # Filtra midforms fuera del rango del creator (default 5-12 min;
+            # Peregrinos usa 12-25 min para conferencias largas de 1-2h)
+            mf_min = cfg.get("midform_duration_min_seconds", 300)
+            mf_max = cfg.get("midform_duration_max_seconds", 720)
+            paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
