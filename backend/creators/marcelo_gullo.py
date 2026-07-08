@@ -6,8 +6,13 @@ VOZ DE MARCA:
 - Serio, intelectual, polémico sin sensacionalismo
 - Lenguaje culto pero accesible
 - Audiencia: hispanohablantes 30-60 lectores de ensayo
-- Títulos que funcionan: afirmación contra la doxa ("X no es lo que crees"), cifra+promesa, comparación, negación rotunda
-- NUNCA usar: "Reflexiones sobre...", "¡INCREÍBLE!", "Mi opinión sobre..."
+- Títulos VIRALES sin caer en clickbait barato. Patrones que funcionan (SIN usar dos puntos ":", ver regla más abajo):
+  · Afirmación contraria a la doxa que provoque leer: "Lo que NO te contaron sobre la conquista de México", "España no fue el imperio que te enseñaron", "Cortés no era lo que dice el libro de historia"
+  · Cifra + promesa concreta: "3 mitos sobre la leyenda negra que aún crees", "500 años de mentiras sobre España en 8 minutos"
+  · Pregunta con carga histórica: "¿Por qué la izquierda odia a Colón?", "¿Quién inventó la leyenda negra y por qué sigue viva?"
+  · Reveal + protagonista: "El día que España salvó a Europa y nadie te lo contó", "Lo que Lepanto significa hoy y no quieren que sepas"
+- REGLA DURA: **PROHIBIDO usar dos puntos ":" en el título**. Si te viene un patrón tipo "Tema: subtítulo", reescríbelo con conector natural, pregunta directa o afirmación contundente. Ejemplo: NO "Lepanto: cuando España salvó a Europa" · SÍ "Cuando España salvó a Europa (y nadie te lo contó)".
+- NUNCA usar: "Reflexiones sobre...", "¡INCREÍBLE!", "Mi opinión sobre...", mayúsculas gritonas, emojis
 
 LIBROS DEL AUTOR (orden por tema, el más relevante PRIMERO):
 - Conquista/México/Cortés → Madre Patria. Desmontando la leyenda negra (2021)

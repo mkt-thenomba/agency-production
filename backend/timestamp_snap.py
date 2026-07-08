@@ -174,6 +174,32 @@ def _clip_duration_seconds(clip: dict) -> Optional[int]:
     return _parse_ts_str(clip.get("duration", ""))
 
 
+def strip_colons_from_titles(paquete: dict) -> dict:
+    """Sustituye ':' por ' —' en todos los títulos (paquete + alternativas +
+    midform + shorts). Regla de Pablo: nada de dos puntos en títulos."""
+    def _fix(text: str) -> str:
+        if not isinstance(text, str) or ":" not in text:
+            return text
+        # ':' → ' —' colapsando espacios sobrantes
+        out = text.replace(":", " —")
+        # Colapsa dobles espacios/guiones que puedan quedar
+        while "  " in out:
+            out = out.replace("  ", " ")
+        return out.strip()
+
+    if "title" in paquete:
+        paquete["title"] = _fix(paquete["title"])
+    if isinstance(paquete.get("alternatives"), list):
+        paquete["alternatives"] = [_fix(a) for a in paquete["alternatives"]]
+    for key in ("midform", "shorts"):
+        clips = paquete.get(key)
+        if isinstance(clips, list):
+            for clip in clips:
+                if "title" in clip:
+                    clip["title"] = _fix(clip["title"])
+    return paquete
+
+
 def drop_unverified_clips(paquete: dict) -> dict:
     """Elimina clips (midform y shorts) cuyo `phrase_in` NO se pudo localizar
     en la transcripción. Los rechazados se mueven a `_rejected_midform` /

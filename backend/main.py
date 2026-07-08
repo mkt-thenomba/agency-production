@@ -22,7 +22,10 @@ from .transcript_parser import parse_transcript, format_mmss
 from .claude_client import generate_paquete, stream_paquete
 from . import assemblyai_client
 from . import vercel_blob
-from .timestamp_snap import snap_clip_timestamps, filter_midform_by_duration, drop_unverified_clips
+from .timestamp_snap import (
+    snap_clip_timestamps, filter_midform_by_duration,
+    drop_unverified_clips, strip_colons_from_titles,
+)
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
     next_available_code, suggest_publish_at, render_all,
@@ -336,6 +339,9 @@ def process_transcript(slug: str, payload: dict):
             mf_min = cfg.get("midform_duration_min_seconds", 300)
             mf_max = cfg.get("midform_duration_max_seconds", 720)
             paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
+            # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
+            # el backend sustituye ':' por ' —' antes de guardar.
+            paquete = strip_colons_from_titles(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -624,6 +630,9 @@ async def process_audio(
             mf_min = cfg.get("midform_duration_min_seconds", 300)
             mf_max = cfg.get("midform_duration_max_seconds", 720)
             paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
+            # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
+            # el backend sustituye ':' por ' —' antes de guardar.
+            paquete = strip_colons_from_titles(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -927,6 +936,9 @@ async def process_audio_url(slug: str, payload: dict):
             mf_min = cfg.get("midform_duration_min_seconds", 300)
             mf_max = cfg.get("midform_duration_max_seconds", 720)
             paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
+            # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
+            # el backend sustituye ':' por ' —' antes de guardar.
+            paquete = strip_colons_from_titles(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})

@@ -11,8 +11,13 @@ VOZ DE MARCA:
 - Mezcla rigor académico (doctorado, fuentes) con épica narrativa (la espada, el lobo, el dolmen, la hoguera).
 - Lenguaje culto, sentencioso, con cadencia oral; frases cortas que pueden citarse.
 - Audiencia: jóvenes 18-40 hispanohablantes que buscan raíz, sentido y virtud; lectores de Tolkien, Jünger, Evola, Chesterton.
-- Títulos que funcionan: revelación de "verdad oculta", afirmación contra el relato moderno, recuperación de héroes/mitos olvidados, llamada al destino.
-- Frases-marca: "verdades ocultas", "forjar el carácter", "destino de Europa", "el aullido del lobo", "España frente a su destino".
+- Títulos VIRALES sin clickbait barato, con resonancia mítica. Patrones que funcionan (SIN usar dos puntos ":"):
+  · Revelación de verdad oculta: "Lo que los celtas sabían sobre el destino y hemos olvidado", "La verdad sobre Covadonga que ningún libro moderno cuenta"
+  · Afirmación mítica contra el relato moderno: "Los héroes que Europa expulsó de su memoria", "España no cayó en el 711, se forjó"
+  · Pregunta con carga iniciática: "¿Por qué el lobo persigue al hombre moderno?", "¿Qué te hace ser un guerrero hoy?"
+  · Reveal de figura o mito: "El día que un rey astur cambió Europa para siempre", "El símbolo pagano que aún vive en tu casa sin saberlo"
+- REGLA DURA: **PROHIBIDO usar dos puntos ":" en el título**. Si te viene un patrón tipo "Los Celtas: héroes y magia", reescríbelo con conector natural o afirmación directa. Ejemplo: NO "Covadonga: la batalla que cambió Europa" · SÍ "Cómo un rey astur en Covadonga cambió Europa".
+- Frases-marca reutilizables: "verdades ocultas", "forjar el carácter", "destino de Europa", "el aullido del lobo", "España frente a su destino".
 - NUNCA usar: "Reflexiones sobre…", clickbait sensacionalista, mayúsculas gratuitas, woke/anti-woke explícito (lo nuestro es civilizatorio, no partidista).
 
 LIBROS DEL AUTOR (orden por tema, el más relevante PRIMERO):
