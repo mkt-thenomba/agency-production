@@ -585,6 +585,25 @@ textarea {
   background: #fbf6ea;
 }
 
+.rejected-section {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #fdf1f0;
+  border: 1px dashed var(--error);
+  border-radius: 6px;
+}
+.rejected-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--error);
+  padding: 2px 0;
+}
+.rejected-section .clip-card.rejected-clip {
+  border-left: 3px solid var(--error);
+  background: white;
+  margin-top: 8px;
+}
+
 .clip-card {
   background: var(--crema-pap);
   padding: 10px 12px;

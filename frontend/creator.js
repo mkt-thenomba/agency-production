@@ -639,6 +639,10 @@ function renderPaquete(v) {
     p.midform.forEach((m, i) => mfWrap.appendChild(renderClip(m, "Midform", i + 1)));
     wrap.appendChild(mfWrap);
   }
+  if (Array.isArray(p._rejected_midform) && p._rejected_midform.length) {
+    wrap.appendChild(renderRejectedSection(
+      "Midform sin verificar", p._rejected_midform, "Midform"));
+  }
 
   // Shorts
   if (Array.isArray(p.shorts) && p.shorts.length) {
@@ -647,6 +651,15 @@ function renderPaquete(v) {
     sWrap.innerHTML = `<h5 class="section-title">Shorts (${p.shorts.length} piezas)</h5>`;
     p.shorts.forEach((s, i) => sWrap.appendChild(renderClip(s, "Short", i + 1, true)));
     wrap.appendChild(sWrap);
+  }
+  if (Array.isArray(p._rejected_shorts) && p._rejected_shorts.length) {
+    wrap.appendChild(renderRejectedSection(
+      "Shorts sin verificar", p._rejected_shorts, "Short"));
+  }
+  // Trailer rejected clips (dentro del objeto trailer)
+  if (p.trailer && Array.isArray(p.trailer._rejected_clips) && p.trailer._rejected_clips.length) {
+    wrap.appendChild(renderRejectedSection(
+      "Clips de trailer sin verificar", p.trailer._rejected_clips, "Trailer"));
   }
 
   // Alertas
@@ -687,6 +700,64 @@ function renderPaquete(v) {
   filesDetails.appendChild(ul);
   wrap.appendChild(filesDetails);
 
+  return wrap;
+}
+
+function renderRejectedSection(title, rejectedClips, kind) {
+  const wrap = document.createElement("details");
+  wrap.className = "rejected-section";
+  const summary = document.createElement("summary");
+  summary.innerHTML = `<span class="ts-badge bad">⚠ ${rejectedClips.length} sin verificar</span> ${escapeHtml(title)}`;
+  wrap.appendChild(summary);
+
+  const note = document.createElement("p");
+  note.className = "publish-hint";
+  note.innerHTML = `Estos clips <strong>no se pudieron verificar</strong> — Claude parafraseó las citas y no encontramos la frase literal en la transcripción. Los timestamps que Claude dio pueden estar equivocados. Copia la frase, búscala en el audio y ajusta a mano si te sirve. Si el clip es reciclable, dile a Claude "cita más literal" en la siguiente iteración.`;
+  wrap.appendChild(note);
+
+  rejectedClips.forEach((clip, i) => {
+    const card = document.createElement("div");
+    card.className = "clip-card rejected-clip";
+    const header = document.createElement("div");
+    header.className = "clip-header";
+    header.innerHTML = `
+      <strong>${escapeHtml(kind)} ${i + 1}</strong>
+      <span class="clip-title">${escapeHtml(clip.title || clip.role || "")}</span>
+      <span class="clip-times">${escapeHtml(clip.in || "?")} → ${escapeHtml(clip.out || "?")} · ${escapeHtml(clip.duration || "")}</span>
+      <span class="ts-badge bad">⚠ Claude parafraseó</span>
+    `;
+    card.appendChild(header);
+
+    if (clip._rejected_reason) {
+      const reason = document.createElement("p");
+      reason.className = "publish-hint";
+      reason.style.color = "var(--error)";
+      reason.textContent = clip._rejected_reason;
+      card.appendChild(reason);
+    }
+    // Copy blocks para las citas — utilísimo para Ctrl+F en el audio/transcripción
+    if (clip.phrase_in) {
+      card.appendChild(copyBlock({
+        label: "Frase entrada (Claude, no localizada literalmente)",
+        content: clip.phrase_in,
+        compact: true,
+      }));
+    }
+    if (clip.phrase_out) {
+      card.appendChild(copyBlock({
+        label: "Frase salida (Claude, no localizada literalmente)",
+        content: clip.phrase_out,
+        compact: true,
+      }));
+    }
+    if (clip.why_here || clip.why_works) {
+      const why = document.createElement("p");
+      why.className = "publish-hint";
+      why.innerHTML = `<strong>Por qué Claude lo propuso:</strong> ${escapeHtml(clip.why_here || clip.why_works || "")}`;
+      card.appendChild(why);
+    }
+    wrap.appendChild(card);
+  });
   return wrap;
 }
 
