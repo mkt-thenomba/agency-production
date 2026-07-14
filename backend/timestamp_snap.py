@@ -11,6 +11,7 @@ con el contenido. Esta función:
 """
 import re
 import unicodedata
+from difflib import SequenceMatcher
 from typing import Optional
 
 TS_LINE_RE = re.compile(r"^\[(\d+):(\d+)\]\s+(.+)$")
@@ -88,6 +89,44 @@ def _find_phrase_ts(phrase: str,
                 for offset, ts in reversed(offsets):
                     if offset <= idx:
                         return ts
+
+    # 4. Fuzzy fallback (último recurso): overlap de PALABRAS SIGNIFICATIVAS
+    # entre phrase y ventanas de 1-3 líneas. Métrica robusta contra
+    # parafraseos (sinónimos) sin caer en falsos positivos.
+    #
+    # Ejemplos:
+    #   phrase "Tolkien creía que su mundo fue el nuestro"
+    #   line   "Tolkien pensaba que su mundo era como una prefiguración del nuestro"
+    #   → content words phrase = {tolkien, creia, mundo, nuestro}
+    #   → content words line   = {tolkien, pensaba, mundo, prefiguracion, nuestro}
+    #   → overlap = 3/4 = 0.75 → MATCH (parafraseo válido)
+    #
+    #   phrase "Fukuyama fin historia último hombre" vs línea sobre Tolkien
+    #   → 0% overlap → no match
+    def _content_words(s: str) -> set[str]:
+        # solo palabras de 4+ caracteres (evita stopwords: que, con, del, el, la…)
+        return {w for w in s.split() if len(w) >= 4}
+
+    p_content = _content_words(p_norm)
+    if len(p_content) >= 3:
+        # Iteramos span de menor a mayor con salida temprana: preferimos el
+        # match más PRECISO (línea única) sobre uno impreciso (ventana grande).
+        for span in (1, 2, 3):
+            best_overlap = 0.0
+            best_ts: Optional[int] = None
+            for i, (ts, _, _) in enumerate(lines):
+                if i + span > len(lines):
+                    continue
+                window = " ".join(l[2] for l in lines[i:i + span])
+                if len(window) > len(p_norm) * 5:
+                    continue
+                w_content = _content_words(window)
+                overlap = len(p_content & w_content) / len(p_content)
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_ts = ts
+            if best_overlap >= 0.70:
+                return best_ts
 
     return None
 

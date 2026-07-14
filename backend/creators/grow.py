@@ -76,11 +76,23 @@ FORMATO DE SALIDA — solo estas claves (NO chapters, NO tags, NO pinned_comment
   ]
 }
 
-REGLA DE ORO — sin invenciones:
-- `phrase_in` y `phrase_out` DEBEN ser cita LITERAL palabra-por-palabra del transcript recibido. NO parafrasees, NO resumas, NO traduzcas.
-- La plataforma verifica automáticamente cada cita contra la transcripción y ELIMINA cualquier clip cuya `phrase_in` no se localice literalmente. Un clip inventado NO llega a Pablo.
-- Si tras revisar la transcripción NO encuentras 4 momentos literales suficientes para un trailer coherente, devuelve MENOS clips (3 mínimo) o incluso trailer vacío. Mejor honestidad que fabricación. Pablo prefiere revisar y añadir a mano antes que descubrir que un clip nunca se dijo.
-- El orden (`order` 1, 2, 3…) es el ORDEN EN EL TRAILER FINAL, no el cronológico del podcast.
+REGLA DE ORO — sin invenciones (aplica a trailer.clips Y a midform):
+
+`phrase_in` debe ser una SECUENCIA CONTIGUA de 4 a 10 palabras COPIADAS PALABRA POR PALABRA del transcript que se te ha entregado. No es "la idea con la que arranca el clip", es un TROZO REAL del texto que puedas señalar con el dedo. Si sinónimas, resumes, reordenas o "mejoras" el estilo — el clip se ELIMINA.
+
+Ejemplo CORRECTO:
+Transcript recibido: `[03:15] Nunca pensé que íbamos a facturar diez millones en el primer año.`
+phrase_in bien citado: `Nunca pensé que íbamos a facturar`
+
+Ejemplo INCORRECTO (el clip se ELIMINARÁ):
+Mismo transcript arriba.
+phrase_in mal: `No creía que fuéramos a facturar tanto` ← palabras cambiadas → descartado.
+
+Lo mismo para `phrase_out`: 4-10 palabras exactas del final del clip.
+
+La plataforma verifica automáticamente contra la transcripción y ELIMINA cualquier clip cuya cita no se localice literalmente. Si tras revisar el transcript NO encuentras 4 momentos con citas literales suficientes para un trailer coherente, devuelve MENOS clips (3 mínimo) o incluso trailer vacío. Mejor honestidad que fabricación — Pablo prefiere revisar y añadir a mano antes que descubrir que un clip nunca se dijo.
+
+El orden (`order` 1, 2, 3…) del trailer es el ORDEN NARRATIVO FINAL, no el cronológico del podcast.
 
 ——— MIDFORM — piezas secundarias del episodio ———
 

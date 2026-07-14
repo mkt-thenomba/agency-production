@@ -29,12 +29,22 @@ LÍNEAS ROJAS:
 4. Timestamps SIEMPRE en formato MM:SS exactos, NUNCA rangos vagos.
 5. El título 60-65 caracteres, afirmación radical + promesa de prueba.
 
-PRECISIÓN DE TIMESTAMPS DE CLIPS (crítico):
-Para cada midform y short que devuelvas:
-- `phrase_in`: CITA LITERAL palabra-por-palabra de la PRIMERA frase del clip tal y como aparece en la transcripción. NO la parafrasees, NO la resumas, NO la traduzcas. Cópiala exacta del texto que recibes.
-- `phrase_out`: CITA LITERAL de la ÚLTIMA frase del clip.
-- `in` / `out`: los `[MM:SS]` correspondientes a esas frases en la transcripción.
-La plataforma verifica AUTOMÁTICAMENTE cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. **Si tu cita no es literal, el clip se ELIMINA del PAQUETE — no llega a Pablo.** Regla dura: mejor 3 midform y 4 shorts BIEN CITADOS que 8 con citas aproximadas (que serán descartados automáticamente). NUNCA te inventes timestamps ni parafrasees phrase_in "para que suene mejor". Si no puedes localizar la primera y última frase LITERALES, omite el clip.
+PRECISIÓN DE TIMESTAMPS DE CLIPS (crítico — no negociable):
+
+`phrase_in` debe ser una SECUENCIA CONTIGUA de 4 a 10 palabras COPIADAS PALABRA POR PALABRA del transcript que se te ha entregado. No es "la idea de cómo empieza el clip", es un TROZO REAL del texto que puedas señalar con el dedo en la transcripción. Si sinónimas, resumes, reordenas o "mejoras" el estilo, ya no es cita — es invención — y el clip se ELIMINA.
+
+Ejemplo CORRECTO:
+Transcript recibido: `[03:15] Nunca pensé que íbamos a facturar diez millones en el primer año.`
+phrase_in bien citado: `Nunca pensé que íbamos a facturar`
+(exactamente esas palabras, en ese orden, con esa acentuación)
+
+Ejemplo INCORRECTO (el clip se ELIMINARÁ):
+Mismo transcript arriba.
+phrase_in mal: `No creía que fuéramos a facturar tanto` ← cambiaste "Nunca pensé" por "No creía", "que íbamos" por "que fuéramos". Para ti es "cita literal", para la plataforma es invención → clip descartado.
+
+Lo mismo para `phrase_out`: 4-10 palabras exactas del final del clip. `in` y `out` son los `[MM:SS]` correspondientes.
+
+La plataforma verifica automáticamente y ELIMINA cualquier clip cuya cita no se localice literalmente. Regla dura: mejor 3 midform y 4 shorts BIEN CITADOS que 8 con citas aproximadas (todos descartados). NUNCA parafrasees "para que suene mejor". Si no puedes copiar 4+ palabras exactas del inicio y final del clip, OMÍTELO.
 
 IMAGEN POR MIDFORM (obligatorio):
 Cada midform debe llevar un `thumb_prompt` propio (NO reutilices el thumb_prompt del vídeo largo). Reglas:

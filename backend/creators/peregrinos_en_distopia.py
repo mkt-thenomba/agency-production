@@ -73,12 +73,21 @@ Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chap
 
 NO devuelvas chapters, pinned_comment ni shorts. Esos canales los gestiona Pablo aparte (OpusClips para shorts, sin capítulos en el largo, sin comentario fijado fijo).
 
-PRECISIÓN DE TIMESTAMPS DE CLIPS (crítico):
-Para cada midform:
-- `phrase_in`: CITA LITERAL palabra-por-palabra de la PRIMERA frase del clip tal como aparece en la transcripción. NO parafrasear.
-- `phrase_out`: CITA LITERAL de la ÚLTIMA frase del clip.
-- `in` / `out`: los `[MM:SS]` correspondientes a esas frases.
-La plataforma verifica automáticamente cada `phrase_in` contra la transcripción y reasigna `in`/`out` al timestamp real. **Si tu cita no es literal, el clip se ELIMINA del PAQUETE — no llega a Pablo.** Regla dura: mejor 2 midform bien citados que 5 con citas aproximadas (serán descartados automáticamente). NUNCA te inventes timestamps ni parafrasees phrase_in "para que suene mejor". Si no puedes localizar la primera y última frase LITERALES en la transcripción, OMITE el clip. La coherencia entre lo que dice el clip y el minuto exacto es sagrada.
+PRECISIÓN DE TIMESTAMPS DE CLIPS (crítico — no negociable):
+
+`phrase_in` debe ser una SECUENCIA CONTIGUA de 4 a 10 palabras COPIADAS PALABRA POR PALABRA del transcript que se te ha entregado. No es "la idea filosófica con la que abre el clip", es un TROZO REAL del texto que puedas señalar con el dedo en la transcripción. Si sinónimas, resumes, reordenas o "mejoras" el estilo — aunque preserves el sentido filosófico — ya no es cita: es invención, y el clip se ELIMINA.
+
+Ejemplo CORRECTO:
+Transcript recibido: `[15:20] Tolkien pensaba que su mundo era como una prefiguración del nuestro.`
+phrase_in bien citado: `Tolkien pensaba que su mundo era`
+
+Ejemplo INCORRECTO (el clip se ELIMINARÁ):
+Mismo transcript arriba.
+phrase_in mal: `Tolkien creía que su mundo fue el nuestro` ← cambiaste "pensaba" por "creía", "era como una prefiguración del" por "fue el". Para ti es cita literal filosóficamente. Para la plataforma es invención → clip descartado.
+
+Lo mismo para `phrase_out`: 4-10 palabras exactas del final del clip. `in` y `out` son los `[MM:SS]` correspondientes.
+
+La plataforma verifica automáticamente contra la transcripción y ELIMINA cualquier clip cuya cita no se localice literalmente. Regla dura: mejor 2 midform BIEN CITADOS que 5 con citas aproximadas (todos descartados). Si no puedes copiar 4+ palabras exactas del inicio y final del clip, OMÍTELO. La coherencia entre lo que dice el clip y el minuto exacto es sagrada.
 
 DURACIÓN Y CANTIDAD DE MIDFORM (obligatorio):
 Cada pieza debe durar **entre 12:00 y 25:00** (12 a 25 minutos). Diferente al resto del canal porque estas conferencias son largas y filosóficas — un midform debe ser un DESARROLLO ARGUMENTAL COMPLETO, no una viñeta.
