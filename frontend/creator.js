@@ -599,6 +599,38 @@ function renderPaquete(v) {
   }
   if (p.thumb_textA || p.thumb_textB || p.thumb_prompt) wrap.appendChild(thumbWrap);
 
+  // Trailer (Grow y cualquier creator con formato de trailer)
+  if (p.trailer && Array.isArray(p.trailer.clips) && p.trailer.clips.length) {
+    const tWrap = document.createElement("div");
+    tWrap.className = "trailer-section";
+    const clips = [...p.trailer.clips].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const totalSec = clips.reduce((sum, c) => sum + (parseDurationToSeconds(c.duration) || 0), 0);
+    const target = p.trailer.target_seconds || 30;
+    tWrap.innerHTML = `<h5 class="section-title">Trailer · ${clips.length} clips · ${totalSec}s (objetivo ${target}s)</h5>`;
+    if (p.trailer.narrative_arc) {
+      const arc = document.createElement("p");
+      arc.className = "publish-hint";
+      arc.innerHTML = `<strong>Arco:</strong> ${escapeHtml(p.trailer.narrative_arc)}`;
+      tWrap.appendChild(arc);
+    }
+    // Brief completo del trailer (todo el guión para el editor)
+    const brief = clips.map(c => {
+      const line1 = `${c.order}. ${c.in} → ${c.out} (${c.duration || ""}) · ${c.role || ""}`;
+      const line2 = `   IN:  "${c.phrase_in || ""}"`;
+      const line3 = `   OUT: "${c.phrase_out || ""}"`;
+      const line4 = c.why_here ? `   POR QUÉ AQUÍ: ${c.why_here}` : "";
+      return [line1, line2, line3, line4].filter(Boolean).join("\n");
+    }).join("\n\n");
+    tWrap.appendChild(copyBlock({
+      label: "Brief completo del trailer (para el editor)",
+      content: brief,
+      multiline: true,
+    }));
+    // Un card por clip
+    clips.forEach(c => tWrap.appendChild(renderTrailerClip(c)));
+    wrap.appendChild(tWrap);
+  }
+
   // Midform
   if (Array.isArray(p.midform) && p.midform.length) {
     const mfWrap = document.createElement("div");
@@ -655,6 +687,55 @@ function renderPaquete(v) {
   filesDetails.appendChild(ul);
   wrap.appendChild(filesDetails);
 
+  return wrap;
+}
+
+function parseDurationToSeconds(dur) {
+  if (!dur || typeof dur !== "string") return 0;
+  const parts = dur.trim().split(":");
+  if (parts.length === 1) return parseInt(parts[0], 10) || 0;
+  if (parts.length === 2) {
+    return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+  }
+  return 0;
+}
+
+function renderTrailerClip(clip) {
+  const wrap = document.createElement("div");
+  wrap.className = "clip-card trailer-clip";
+  const inVerified = clip._in_verified === true;
+  const outVerified = clip._out_verified === true;
+  let badge;
+  if (inVerified && outVerified) {
+    badge = `<span class="ts-badge ok" title="Timestamps verificados">✓ verificado</span>`;
+  } else if (inVerified || outVerified) {
+    badge = `<span class="ts-badge partial" title="Solo un extremo verificado">⚠ parcial</span>`;
+  } else {
+    badge = `<span class="ts-badge bad" title="No verificado">⚠ sin verificar</span>`;
+  }
+  const header = document.createElement("div");
+  header.className = "clip-header";
+  header.innerHTML = `
+    <strong>Clip ${clip.order || "?"}</strong>
+    <span class="clip-title">${escapeHtml(clip.role || "")}</span>
+    <span class="clip-times">${escapeHtml(clip.in || "")} → ${escapeHtml(clip.out || "")} · ${escapeHtml(clip.duration || "")}</span>
+    ${badge}
+  `;
+  wrap.appendChild(header);
+
+  const briefLines = [
+    `Clip ${clip.order || "?"} · role: ${clip.role || ""}`,
+    `IN:  ${clip.in || ""}   OUT: ${clip.out || ""}   DUR: ${clip.duration || ""}`,
+    `Frase inicial: "${clip.phrase_in || ""}"`,
+    `Frase final:   "${clip.phrase_out || ""}"`,
+  ];
+  if (clip.why_here) briefLines.push(`Por qué aquí: ${clip.why_here}`);
+  wrap.appendChild(copyBlock({
+    label: `Clip ${clip.order || "?"} (brief para editor)`,
+    content: briefLines.join("\n"),
+    multiline: true,
+    compact: true,
+  }));
   return wrap;
 }
 

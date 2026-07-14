@@ -579,7 +579,11 @@ textarea {
   padding-bottom: 4px;
 }
 
-.thumb-section, .clips-section, .alerts-section { margin-top: 12px; }
+.thumb-section, .clips-section, .alerts-section, .trailer-section { margin-top: 12px; }
+.trailer-section .clip-card.trailer-clip {
+  border-left: 3px solid var(--rojo);
+  background: #fbf6ea;
+}
 
 .clip-card {
   background: var(--crema-pap);

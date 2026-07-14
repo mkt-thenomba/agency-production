@@ -172,8 +172,10 @@ def render_paquete_md(code: str, type_: str, duration: str,
     out.append((paquete.get("thumb_prompt", "") or "").strip())
     out.append("```\n")
 
-    out.append("## I. MIDFORM\n")
-    for i, m in enumerate(paquete.get("midform", []) or [], 1):
+    midforms = paquete.get("midform", []) or []
+    if midforms:
+        out.append("## I. MIDFORM\n")
+    for i, m in enumerate(midforms, 1):
         out.append(f"### Midform {i} — {m.get('title','')}")
         out.append(f"- **IN:** `{m.get('in','')}` · **OUT:** `{m.get('out','')}` · **Duración:** {m.get('duration','')}")
         out.append(f"- **Frase entrada:** *\"{m.get('phrase_in','')}\"*")
@@ -197,11 +199,29 @@ def render_paquete_md(code: str, type_: str, duration: str,
             out.append(f"- **Burn:** `{s.get('burn_text','')}`")
             out.append(f"- **Por qué funciona:** {s.get('why_works','')}\n")
 
-    out.append("## K. ALERTAS DE MONETIZACIÓN\n")
+    trailer = paquete.get("trailer") or {}
+    trailer_clips = trailer.get("clips") if isinstance(trailer, dict) else None
+    if isinstance(trailer_clips, list) and trailer_clips:
+        total = sum(_parse_seconds(c.get("duration", "")) or 0 for c in trailer_clips)
+        target = trailer.get("target_seconds", 30)
+        arc = trailer.get("narrative_arc", "")
+        out.append(f"## L. TRAILER ({total}s aprox · objetivo {target}s)\n")
+        if arc:
+            out.append(f"**Arco:** {arc}\n")
+        for c in sorted(trailer_clips, key=lambda x: x.get("order", 0)):
+            out.append(
+                f"### Clip {c.get('order','?')} · {c.get('role','')} · "
+                f"`{c.get('in','')}` → `{c.get('out','')}` ({c.get('duration','')})"
+            )
+            out.append(f"- **IN literal:** *\"{c.get('phrase_in','')}\"*")
+            out.append(f"- **OUT literal:** *\"{c.get('phrase_out','')}\"*")
+            if c.get("why_here"):
+                out.append(f"- **Por qué aquí:** {c['why_here']}")
+            out.append("")
+
     alerts = paquete.get("alerts", []) or []
-    if not alerts:
-        out.append("_Sin alertas detectadas._")
-    else:
+    if alerts:
+        out.append("## K. ALERTAS DE MONETIZACIÓN\n")
         out.append("| Timestamp | Sección | Riesgo | Ajuste |")
         out.append("|---|---|---|---|")
         for a in alerts:
@@ -211,6 +231,21 @@ def render_paquete_md(code: str, type_: str, duration: str,
             )
 
     return "\n".join(out) + "\n"
+
+
+def _parse_seconds(dur: str):
+    """Convierte 'MM:SS' o 'SS' o 'M:SS' a segundos int. None si no parsea."""
+    if not dur or not isinstance(dur, str):
+        return None
+    parts = dur.strip().split(":")
+    try:
+        if len(parts) == 1:
+            return int(parts[0])
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+    except ValueError:
+        pass
+    return None
 
 
 def render_all(code: str, type_: str, duration: str, paquete: dict,

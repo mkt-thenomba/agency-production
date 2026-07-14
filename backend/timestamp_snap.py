@@ -107,20 +107,31 @@ def _parse_ts_str(ts: str) -> Optional[int]:
     return int(m.group(1)) * 60 + int(m.group(2))
 
 
+def _iter_clip_lists(paquete: dict):
+    """Devuelve cada lista de clips dentro del paquete: midform, shorts, y
+    trailer.clips si existe. Ambos tipos usan la misma estructura (title/in/
+    out/phrase_in/phrase_out) y se benefician del mismo snap/drop."""
+    for key in ("midform", "shorts"):
+        v = paquete.get(key)
+        if isinstance(v, list):
+            yield v
+    trailer = paquete.get("trailer")
+    if isinstance(trailer, dict) and isinstance(trailer.get("clips"), list):
+        yield trailer["clips"]
+
+
 def snap_clip_timestamps(paquete: dict, transcript: str) -> dict:
     """Modifica `paquete` in-place: reescribe `in`/`out` de cada clip en
-    `midform` y `shorts` al timestamp REAL donde aparece la frase citada.
-    Añade `_in_verified`, `_out_verified` y `_original_timestamps`."""
+    `midform`, `shorts` y `trailer.clips` al timestamp REAL donde aparece
+    la frase citada. Añade `_in_verified`, `_out_verified` y
+    `_original_timestamps`."""
     lines = _parse_lines(transcript)
     if not lines:
         return paquete
 
     last_ts_in_transcript = lines[-1][0]
 
-    for key in ("midform", "shorts"):
-        clips = paquete.get(key)
-        if not isinstance(clips, list):
-            continue
+    for clips in _iter_clip_lists(paquete):
         for clip in clips:
             phrase_in = clip.get("phrase_in", "") or ""
             phrase_out = clip.get("phrase_out", "") or phrase_in
@@ -201,12 +212,19 @@ def strip_colons_from_titles(paquete: dict) -> dict:
 
 
 def drop_unverified_clips(paquete: dict) -> dict:
-    """Elimina clips (midform y shorts) cuyo `phrase_in` NO se pudo localizar
-    en la transcripción. Los rechazados se mueven a `_rejected_midform` /
-    `_rejected_shorts` con reason='phrase_in no localizada — timestamp inventado'.
+    """Elimina clips (midform, shorts y trailer.clips) cuyo `phrase_in` NO se
+    pudo localizar en la transcripción. Los rechazados se mueven a un bucket
+    hermano con reason='phrase_in no localizada — timestamp inventado'.
 
     Regla de Pablo: 'no te inventes nunca nada'. Si Claude no citó literal,
     el clip no llega al PAQUETE final."""
+    def _reason(clip: dict) -> None:
+        clip["_rejected_reason"] = (
+            "phrase_in no localizada en la transcripción — "
+            "cita no literal, timestamp inventado"
+        )
+
+    # midform + shorts (nivel raíz del paquete)
     for key, rejected_key in (("midform", "_rejected_midform"),
                               ("shorts", "_rejected_shorts")):
         clips = paquete.get(key)
@@ -216,16 +234,27 @@ def drop_unverified_clips(paquete: dict) -> dict:
         rejected: list[dict] = list(paquete.get(rejected_key) or [])
         for clip in clips:
             if clip.get("_in_verified") is not True:
-                clip["_rejected_reason"] = (
-                    "phrase_in no localizada en la transcripción — "
-                    "cita no literal, timestamp inventado"
-                )
-                rejected.append(clip)
+                _reason(clip); rejected.append(clip)
             else:
                 valid.append(clip)
         paquete[key] = valid
         if rejected:
             paquete[rejected_key] = rejected
+
+    # trailer.clips (anidado en el objeto trailer)
+    trailer = paquete.get("trailer")
+    if isinstance(trailer, dict) and isinstance(trailer.get("clips"), list):
+        valid_t: list[dict] = []
+        rejected_t: list[dict] = list(trailer.get("_rejected_clips") or [])
+        for clip in trailer["clips"]:
+            if clip.get("_in_verified") is not True:
+                _reason(clip); rejected_t.append(clip)
+            else:
+                valid_t.append(clip)
+        trailer["clips"] = valid_t
+        if rejected_t:
+            trailer["_rejected_clips"] = rejected_t
+
     return paquete
 
 

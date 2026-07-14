@@ -602,11 +602,14 @@ async def process_audio(
                     missing = [k for k in REQUIRED_KEYS if k not in paquete]
                     if missing:
                         raise ValueError(f"Faltan claves: {missing}")
-                    if not isinstance(paquete.get("midform"), list):
-                        raise ValueError("midform no es lista")
-                    # shorts opcional (algunos creators no lo generan)
+                    # midform / shorts / trailer son opcionales por creator
+                    if "midform" in paquete and not isinstance(paquete["midform"], list):
+                        raise ValueError("midform debe ser lista")
                     if "shorts" in paquete and not isinstance(paquete["shorts"], list):
-                        raise ValueError("shorts no es lista")
+                        raise ValueError("shorts debe ser lista")
+                    if "trailer" in paquete and not isinstance(paquete["trailer"], dict):
+                        raise ValueError("trailer debe ser objeto")
+                    paquete.setdefault("midform", [])
                     paquete.setdefault("shorts", [])
                     break
                 except Exception as e:
@@ -908,11 +911,14 @@ async def process_audio_url(slug: str, payload: dict):
                     missing = [k for k in REQUIRED_KEYS if k not in paquete]
                     if missing:
                         raise ValueError(f"Faltan claves: {missing}")
-                    if not isinstance(paquete.get("midform"), list):
-                        raise ValueError("midform no es lista")
-                    # shorts opcional (algunos creators no lo generan)
+                    # midform / shorts / trailer son opcionales por creator
+                    if "midform" in paquete and not isinstance(paquete["midform"], list):
+                        raise ValueError("midform debe ser lista")
                     if "shorts" in paquete and not isinstance(paquete["shorts"], list):
-                        raise ValueError("shorts no es lista")
+                        raise ValueError("shorts debe ser lista")
+                    if "trailer" in paquete and not isinstance(paquete["trailer"], dict):
+                        raise ValueError("trailer debe ser objeto")
+                    paquete.setdefault("midform", [])
                     paquete.setdefault("shorts", [])
                     break
                 except Exception as e:
