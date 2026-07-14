@@ -534,6 +534,15 @@ function renderPaquete(v) {
     wrap.appendChild(hint);
   }
 
+  // Aviso si el transcript no traía timestamps (calculados por longitud del texto)
+  if (v.transcript_source === "synthetic-timestamps") {
+    const warn = document.createElement("p");
+    warn.className = "publish-hint";
+    warn.style.color = "var(--warn)";
+    warn.innerHTML = `⚠ <strong>Timestamps aproximados:</strong> el transcript llegó sin marcas de tiempo (150 wpm asumidos). Precisión ±30-60s. Para timestamps exactos, procesa desde el audio MP3.`;
+    wrap.appendChild(warn);
+  }
+
   // Título principal + alternativas
   if (p.title) {
     wrap.appendChild(copyBlock({

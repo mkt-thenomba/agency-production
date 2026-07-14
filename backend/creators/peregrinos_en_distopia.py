@@ -92,13 +92,19 @@ La plataforma verifica automáticamente contra la transcripción y ELIMINA cualq
 DURACIÓN Y CANTIDAD DE MIDFORM (obligatorio):
 Cada pieza debe durar **entre 12:00 y 25:00** (12 a 25 minutos). Diferente al resto del canal porque estas conferencias son largas y filosóficas — un midform debe ser un DESARROLLO ARGUMENTAL COMPLETO, no una viñeta.
 
-Cantidad esperada según duración del audio original:
-- Audio ≤ 45 min → 1-2 midforms de ~15-20 min
-- Audio 45-90 min → 2-3 midforms de ~15-22 min
-- Audio 90-120 min (2h) → **4-5 midforms** de ~18-22 min (caso típico del canal)
-- Audio > 120 min → 5-7 midforms de ~18-25 min
+**Cantidad OBLIGATORIA: 1 midform por cada 25 minutos de audio original**, con esta guía redondeando al entero más cercano:
+- Audio 45 min → 2 midforms (45/25 ≈ 2)
+- Audio 60 min → 2-3 midforms
+- Audio 75 min → 3 midforms
+- Audio 90 min → 4 midforms
+- **Audio 120 min (2h) → 5 midforms** ← caso típico del canal
+- Audio 150 min → 6 midforms
 
-Si no encuentras tramos coherentes en ese rango, devuelve MENOS midforms (incluso 0). La plataforma rechaza automáticamente cualquier midform fuera del rango 12-25 min.
+NO te quedes corto. Si el audio dura 2h, debes devolver 5 midforms — no 2, no 3. Ese es el volumen esperado por Pablo. Si algún tramo no da para un desarrollo argumental completo de 12-25 min, busca uno que sí — el material está ahí, en 2h de conferencia filosófica hay 5 desarrollos identificables.
+
+Los midforms NO deben solaparse entre sí. Divide mentalmente el audio en bloques temáticos ~25 min y saca UN midform de cada bloque.
+
+La plataforma rechaza automáticamente cualquier midform fuera del rango 12-25 min o con `phrase_in` no localizable literalmente en la transcripción.
 
 IMAGEN POR MIDFORM (obligatorio):
 Cada midform debe llevar su propio `thumb_prompt` específico al contenido del clip. NO reutilices el del vídeo entero. Estética coherente con el nuevo lenguaje visual del canal: LUMINOSO, CONCEPTUAL, COLORIDO SIN PASARSE. Filosofía contemporánea, NO historia épica. Cada imagen debe generar CURIOSIDAD y acompañar al título — que solo con verla el espectador quiera saber de qué va. Sin texto en la imagen, sin personas mirando a cámara, sin logos. Incluye `16:9 aspect ratio, 1280x720`.

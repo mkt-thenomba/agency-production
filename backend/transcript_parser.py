@@ -111,13 +111,41 @@ def _from_plain_text(raw: str) -> Tuple[str, float]:
             lines.append(f"[{format_mmss(total)}] {text.strip()}")
         return "\n".join(lines), float(last_s)
 
-    # Último recurso: texto plano sin timestamps
-    return raw, 0.0
+    # Último recurso: texto plano sin timestamps.
+    # Generamos TIMESTAMPS SINTÉTICOS asumiendo 150 palabras/min (velocidad
+    # de habla típica en español conversacional). Sin esto, todo el sistema
+    # de verificación se queda ciego. Precisión ~±30-60s.
+    return _synthetic_timestamps(raw, wpm=150)
+
+
+def _synthetic_timestamps(raw: str, wpm: float = 150.0,
+                          chunk_seconds: float = 8.0) -> Tuple[str, float]:
+    """Genera timestamps `[MM:SS]` sintéticos asumiendo tasa de habla estable.
+    Agrupa palabras en chunks de ~chunk_seconds cada uno."""
+    # Tokeniza descartando líneas vacías. Consideramos el flujo como un solo
+    # torrente de palabras (los saltos de línea del transcript de TurboScribe
+    # son estilísticos, no temporales).
+    words = raw.split()
+    if not words:
+        return raw, 0.0
+
+    words_per_chunk = max(1, int(round((wpm / 60.0) * chunk_seconds)))
+    lines = []
+    i = 0
+    while i < len(words):
+        block = words[i:i + words_per_chunk]
+        seconds = int(round((i / wpm) * 60))
+        mm, ss = seconds // 60, seconds % 60
+        lines.append(f"[{mm:02d}:{ss:02d}] " + " ".join(block))
+        i += words_per_chunk
+
+    total_seconds = (len(words) / wpm) * 60.0
+    return "\n".join(lines), float(total_seconds)
 
 
 def parse_transcript(raw: str) -> Tuple[str, float, str]:
     """Devuelve (texto formateado [MM:SS] línea por línea, duración_s, fuente).
-    `fuente` ∈ {"assemblyai-json", "srt", "text"}."""
+    `fuente` ∈ {"assemblyai-json", "srt", "text", "synthetic-timestamps"}."""
     raw = (raw or "").strip()
     if not raw:
         return "", 0.0, "text"
@@ -131,8 +159,12 @@ def parse_transcript(raw: str) -> Tuple[str, float, str]:
     if out:
         return out[0], out[1], "srt"
 
+    # Marca si el transcript original ya venía con [MM:SS] o si acabamos
+    # de generar sintéticos por ausencia de timestamps.
+    had_timestamps = bool(re.search(r"^\s*\[\d{1,2}:\d{2}\]", raw, re.MULTILINE))
     text, dur = _from_plain_text(raw)
-    return text, dur, "text"
+    source = "text" if had_timestamps else "synthetic-timestamps"
+    return text, dur, source
 
 
 def build_transcript_file(code: str, transcript: str, duration_s: float, source: str) -> str:
