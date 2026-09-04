@@ -25,6 +25,7 @@ from . import vercel_blob
 from .timestamp_snap import (
     snap_clip_timestamps, filter_midform_by_duration,
     drop_unverified_clips, strip_colons_from_titles,
+    normalize_thumb_options,
 )
 from .exporters import (
     slugify, clean_title_from_input, detect_type, extract_code,
@@ -342,6 +343,9 @@ def process_transcript(slug: str, payload: dict):
             # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
             # el backend sustituye ':' por ' —' antes de guardar.
             paquete = strip_colons_from_titles(paquete)
+            # Sanea thumb_options (array de 3 opciones) y rellena thumb_textA/
+            # textB desde la primera opción para retrocompat con vídeos viejos.
+            paquete = normalize_thumb_options(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -636,6 +640,9 @@ async def process_audio(
             # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
             # el backend sustituye ':' por ' —' antes de guardar.
             paquete = strip_colons_from_titles(paquete)
+            # Sanea thumb_options (array de 3 opciones) y rellena thumb_textA/
+            # textB desde la primera opción para retrocompat con vídeos viejos.
+            paquete = normalize_thumb_options(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})
@@ -945,6 +952,9 @@ async def process_audio_url(slug: str, payload: dict):
             # Regla dura: sin dos puntos en títulos. Si Claude ignora la regla,
             # el backend sustituye ':' por ' —' antes de guardar.
             paquete = strip_colons_from_titles(paquete)
+            # Sanea thumb_options (array de 3 opciones) y rellena thumb_textA/
+            # textB desde la primera opción para retrocompat con vídeos viejos.
+            paquete = normalize_thumb_options(paquete)
 
             yield _sse({"stage": "rendering", "progress": 92,
                         "message": "Renderizando entregables"})

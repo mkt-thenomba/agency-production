@@ -52,8 +52,11 @@ FORMATO DE SALIDA — solo estas claves (NO chapters, NO tags, NO pinned_comment
   "alternatives": ["alt1", "alt2", "alt3"],
   "description": "string · 2-3 párrafos + bullets opcionales. Sobrio, profesional, cercano. Sin URLs, sin redes, sin hashtags — Pablo añade ese bloque aparte.",
   "thumb_template": 1-4 (1=retrato en estudio, 2=objeto simbólico de la empresa, 3=escena de momento clave, 4=datos hechos objeto),
-  "thumb_textA": "string · 1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
-  "thumb_textB": "string · 2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
+  "thumb_options": [
+    {"textA":"MAYÚSCULAS 1ª mitad opción 1","textB":"MAYÚSCULAS 2ª mitad opción 1"},
+    {"textA":"MAYÚSCULAS 1ª mitad opción 2","textB":"MAYÚSCULAS 2ª mitad opción 2"},
+    {"textA":"MAYÚSCULAS 1ª mitad opción 3","textB":"MAYÚSCULAS 2ª mitad opción 3"}
+  ],
   "thumb_prompt": "string · prompt image-gen completo en inglés, 16:9, museum-grade",
   "trailer": {
     "target_seconds": 30,
@@ -118,8 +121,8 @@ Cantidad esperada según duración del audio:
 DURACIÓN DE LOS MIDFORM (obligatorio):
 Cada pieza entre **05:00 y 12:00**. La plataforma rechaza automáticamente los fuera de rango. Si un tramo interesante no cuadra con la duración, mejor omitirlo (o meterlo en el trailer si es más corto).
 
-TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
-Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO adaptado a un fondo de inversión. Frase CORTA, DIRECTA, con gancho de negocio partida en dos golpes (A + B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**. Se lee en un segundo.
+TEXTO DE MINIATURA (thumb_options — 3 opciones) — regla obligatoria:
+Devuelve **3 opciones DISTINTAS entre sí** en el array `thumb_options`. Cada opción es un objeto `{textA, textB}` estilo "podcast anglosajón" (Modern Wisdom / Diary of a CEO) adaptado a un fondo de inversión: frase CORTA, DIRECTA, con gancho de negocio partida en dos golpes (A + B), MAYÚSCULAS, **total A+B = 4-6 palabras**. Las 3 opciones deben usar patrones DIFERENTES (no 3 variantes de la misma frase). Pablo escoge la mejor. Idea: opción 1 reveal + protagonista, opción 2 sentencia contraintuitiva, opción 3 cifra + shock o pregunta al oyente.
 
 Patrones que funcionan para Grow:
 - Reveal + protagonista (invitado): "LO QUE ME" / "CAMBIÓ LA EMPRESA"  ·  "3 DECISIONES QUE" / "ME SALVARON"

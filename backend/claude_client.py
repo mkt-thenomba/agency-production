@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 # - Grow: title + alternatives + description + thumb + TRAILER (sin midform)
 REQUIRED_KEYS = [
     "title", "alternatives", "description",
-    "thumb_template", "thumb_textA", "thumb_textB", "thumb_prompt",
+    "thumb_template", "thumb_prompt",
+    # thumb_textA/thumb_textB pasan a ser opcionales (retrocompat).
+    # A partir de ahora se prefiere thumb_options (array de 3 alternativas).
+    # Backend rellena thumb_textA/textB desde thumb_options[0] si viene.
 ]
 
 

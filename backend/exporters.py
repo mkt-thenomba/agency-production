@@ -164,9 +164,17 @@ def render_paquete_md(code: str, type_: str, duration: str,
     out.append("## H. MINIATURA")
     tpl = paquete.get("thumb_template", 1)
     tpl_name = thumb_templates.get(int(tpl), "N/D") if thumb_templates else "N/D"
-    out.append(f"- Plantilla fondo: {tpl} — {tpl_name}")
-    out.append(f"- Texto A: **{paquete.get('thumb_textA', '')}**")
-    out.append(f"- Texto B: **{paquete.get('thumb_textB', '')}**\n")
+    out.append(f"- Plantilla fondo: {tpl} — {tpl_name}\n")
+    thumb_opts = paquete.get("thumb_options")
+    if isinstance(thumb_opts, list) and thumb_opts:
+        out.append(f"**{len(thumb_opts)} opciones de texto** — escoge la que mejor encaje:\n")
+        for i, o in enumerate(thumb_opts, 1):
+            out.append(f"- **Opción {i}:** `{o.get('textA','')}` / `{o.get('textB','')}`")
+        out.append("")
+    else:
+        # Retrocompat: solo textA/textB
+        out.append(f"- Texto A: **{paquete.get('thumb_textA', '')}**")
+        out.append(f"- Texto B: **{paquete.get('thumb_textB', '')}**\n")
     out.append("**Prompt image-gen:**\n")
     out.append("```")
     out.append((paquete.get("thumb_prompt", "") or "").strip())

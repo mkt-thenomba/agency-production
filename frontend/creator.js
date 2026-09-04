@@ -593,12 +593,37 @@ function renderPaquete(v) {
   const thumbWrap = document.createElement("div");
   thumbWrap.className = "thumb-section";
   thumbWrap.innerHTML = `<h5 class="section-title">Miniatura · Plantilla ${escapeHtml(String(p.thumb_template ?? ""))}</h5>`;
-  if (p.thumb_textA) {
-    thumbWrap.appendChild(copyBlock({ label: "Texto A", content: p.thumb_textA, compact: true }));
+
+  // Nuevo: 3 opciones distintas (thumb_options). Fallback a thumb_textA/B viejo.
+  const options = Array.isArray(p.thumb_options) && p.thumb_options.length
+    ? p.thumb_options
+    : ((p.thumb_textA || p.thumb_textB)
+        ? [{ textA: p.thumb_textA || "", textB: p.thumb_textB || "" }]
+        : []);
+  if (options.length > 1) {
+    const hint = document.createElement("p");
+    hint.className = "publish-hint";
+    hint.innerHTML = `<strong>${options.length} opciones</strong> · escoge la que mejor encaje con el vídeo`;
+    thumbWrap.appendChild(hint);
   }
-  if (p.thumb_textB) {
-    thumbWrap.appendChild(copyBlock({ label: "Texto B", content: p.thumb_textB, compact: true }));
-  }
+  options.forEach((o, i) => {
+    const label = options.length > 1 ? `Opción ${i + 1}` : "Texto miniatura";
+    const combined = [o.textA || "", o.textB || ""].filter(Boolean).join("\n");
+    if (combined) {
+      thumbWrap.appendChild(copyBlock({
+        label: `${label} · texto completo (A + B)`,
+        content: combined,
+        compact: true,
+      }));
+    }
+    if (o.textA) thumbWrap.appendChild(copyBlock({
+      label: `${label} · texto A (arriba)`, content: o.textA, compact: true,
+    }));
+    if (o.textB) thumbWrap.appendChild(copyBlock({
+      label: `${label} · texto B (abajo)`, content: o.textB, compact: true,
+    }));
+  });
+
   if (p.thumb_prompt) {
     thumbWrap.appendChild(copyBlock({
       label: "Prompt image-gen (inglés)",
@@ -606,7 +631,7 @@ function renderPaquete(v) {
       multiline: true,
     }));
   }
-  if (p.thumb_textA || p.thumb_textB || p.thumb_prompt) wrap.appendChild(thumbWrap);
+  if (options.length || p.thumb_prompt) wrap.appendChild(thumbWrap);
 
   // Trailer (Grow y cualquier creator con formato de trailer)
   if (p.trailer && Array.isArray(p.trailer.clips) && p.trailer.clips.length) {

@@ -224,6 +224,39 @@ def _clip_duration_seconds(clip: dict) -> Optional[int]:
     return _parse_ts_str(clip.get("duration", ""))
 
 
+def normalize_thumb_options(paquete: dict) -> dict:
+    """Si Claude devuelve `thumb_options` (array de 3), rellena `thumb_textA` y
+    `thumb_textB` desde la primera opción (retrocompat con exporters/frontend
+    que aún leen textA/textB). Y viceversa: si solo vinieron textA/textB, los
+    envuelve como una única opción para que el frontend nuevo pueda renderizar
+    los 3 slots (con las otras 2 vacías)."""
+    opts = paquete.get("thumb_options")
+    if isinstance(opts, list) and opts:
+        # Sanea: descarta entries sin textA
+        clean = []
+        for o in opts:
+            if isinstance(o, dict) and (o.get("textA") or o.get("textB")):
+                clean.append({
+                    "textA": (o.get("textA") or "").strip(),
+                    "textB": (o.get("textB") or "").strip(),
+                })
+        if clean:
+            paquete["thumb_options"] = clean
+            # Retrocompat: primera opción → thumb_textA/thumb_textB
+            paquete.setdefault("thumb_textA", clean[0]["textA"])
+            paquete.setdefault("thumb_textB", clean[0]["textB"])
+        else:
+            paquete.pop("thumb_options", None)
+    elif paquete.get("thumb_textA") or paquete.get("thumb_textB"):
+        # Solo llegó formato viejo: crea un thumb_options de 1 elemento para
+        # que el frontend nuevo lo renderice sin case-splits.
+        paquete["thumb_options"] = [{
+            "textA": (paquete.get("thumb_textA") or "").strip(),
+            "textB": (paquete.get("thumb_textB") or "").strip(),
+        }]
+    return paquete
+
+
 def strip_colons_from_titles(paquete: dict) -> dict:
     """Sustituye ':' por ' —' en todos los títulos (paquete + alternativas +
     midform + shorts). Regla de Pablo: nada de dos puntos en títulos."""
@@ -247,6 +280,16 @@ def strip_colons_from_titles(paquete: dict) -> dict:
             for clip in clips:
                 if "title" in clip:
                     clip["title"] = _fix(clip["title"])
+    # También en textA/textB (top level y dentro de thumb_options)
+    if "thumb_textA" in paquete:
+        paquete["thumb_textA"] = _fix(paquete["thumb_textA"])
+    if "thumb_textB" in paquete:
+        paquete["thumb_textB"] = _fix(paquete["thumb_textB"])
+    if isinstance(paquete.get("thumb_options"), list):
+        for o in paquete["thumb_options"]:
+            if isinstance(o, dict):
+                if "textA" in o: o["textA"] = _fix(o["textA"])
+                if "textB" in o: o["textB"] = _fix(o["textB"])
     return paquete
 
 

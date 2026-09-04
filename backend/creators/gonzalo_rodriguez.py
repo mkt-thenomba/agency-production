@@ -73,8 +73,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
   "thumb_template": 1-4 (1=forja medieval, 2=bosque sagrado, 3=castro al crepúsculo, 4=lobo y runas),
-  "thumb_textA": "string · 1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
-  "thumb_textB": "string · 2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
+  "thumb_options": [
+    {"textA":"MAYÚSCULAS 1ª mitad opción 1","textB":"MAYÚSCULAS 2ª mitad opción 1"},
+    {"textA":"MAYÚSCULAS 1ª mitad opción 2","textB":"MAYÚSCULAS 2ª mitad opción 2"},
+    {"textA":"MAYÚSCULAS 1ª mitad opción 3","textB":"MAYÚSCULAS 2ª mitad opción 3"}
+  ],
   "thumb_prompt": "string · prompt completo en inglés para GPT image-gen con plantilla adaptada al tema",
   "midform": [
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
@@ -89,8 +92,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   ]
 }
 
-TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
-Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO adaptado a la voz épica del canal. Frase CORTA, DIRECTA, con gancho profético-iniciático partida en dos golpes (A + B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**.
+TEXTO DE MINIATURA (thumb_options — 3 opciones) — regla obligatoria:
+Devuelve **3 opciones DISTINTAS entre sí** en el array `thumb_options`. Cada opción es un objeto `{textA, textB}` estilo "podcast anglosajón" (Modern Wisdom / Diary of a CEO) adaptado a la voz épica del canal: frase CORTA, DIRECTA, con gancho profético-iniciático partida en dos golpes (A + B), MAYÚSCULAS, **total A+B = 4-6 palabras**. Las 3 opciones deben usar patrones DIFERENTES (no 3 variantes de la misma frase). Pablo escoge la mejor. Idea: opción 1 reveal de verdad oculta, opción 2 símbolo + carga, opción 3 pregunta iniciática o frase-marca.
 
 Patrones que funcionan para Gonzalo:
 - Reveal de verdad oculta: "LO QUE OLVIDÓ" / "EUROPA"  ·  "LA VERDAD" / "SOBRE COVADONGA"
