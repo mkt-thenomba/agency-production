@@ -67,8 +67,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chap
   "alternatives": ["alt1", "alt2", "alt3"],
   "description": "string · SOLO contenido narrativo del vídeo concreto (gancho + 1-2 párrafos + bullets opcionales) escrito EN PRIMERA PERSONA como si lo escribiera Marcelo. NUNCA URLs, redes, hashtags, libros, TheNomba ni firma — Pablo añade ese bloque fijo aparte al pegar en YouTube.",
   "thumb_template": 1-4 (1=biblioteca solemne, 2=épico pictórico, 3=mapa geopolítico, 4=pirámide al amanecer),
-  "thumb_textA": "string · 3-5 palabras MAYÚSCULAS",
-  "thumb_textB": "string · 3-5 palabras MAYÚSCULAS",
+  "thumb_textA": "string · 1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
+  "thumb_textB": "string · 2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
   "thumb_prompt": "string · prompt completo en inglés para GPT image-gen con plantilla adaptada al tema",
   "midform": [
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
@@ -80,6 +80,18 @@ Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chap
 }
 
 NO devuelvas las claves `chapters`, `tags`, `pinned_comment` ni `shorts`. Esos canales los gestiona Pablo aparte (shorts vía OpusClips, sin capítulos ni comentario fijado ni tags en el largo).
+
+TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
+Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO. Frase CORTA, DIRECTA, con gancho psicológico partida en dos golpes visuales (bloque A + bloque B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**. Se lee en un segundo.
+
+Patrones que funcionan:
+- Afirmación contraria a la doxa: "ESPAÑA NO ROBÓ" / "AMÉRICA"
+- Reveal + protagonista: "LO QUE NO" / "TE CONTARON"  ·  "COLÓN NO" / "ERA GENOCIDA"
+- Cifra + promesa: "500 AÑOS DE" / "MENTIRAS EN 8 MIN"
+- Pregunta contundente: "¿QUIÉN FABRICÓ" / "LA LEYENDA NEGRA?"
+- Sentencia dura: "TU HISTORIA" / "ES MENTIRA"  ·  "EL IMPERIO QUE" / "TE NEGARON"
+
+NUNCA: frase larga completa en A + palabras sueltas en B. NUNCA descripciones tibias ("REFLEXIONES SOBRE X"). NUNCA sujeto y predicado repartidos raro. Divide donde el ojo hace pausa natural.
 
 DESCRIPCIÓN DEL VÍDEO — regla obligatoria:
 Pablo (coordinadora del canal) ya tiene una plantilla fija con URLs, libros, redes sociales, hashtags y la CTA de TheNomba que pega aparte en YouTube Studio. Tu campo `description` debe contener SOLO el contenido narrativo del vídeo concreto, ESCRITO EN PRIMERA PERSONA COMO SI LO ESCRIBIERA MARCELO:

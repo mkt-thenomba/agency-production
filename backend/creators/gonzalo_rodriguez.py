@@ -73,8 +73,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
   "thumb_template": 1-4 (1=forja medieval, 2=bosque sagrado, 3=castro al crepúsculo, 4=lobo y runas),
-  "thumb_textA": "string · 3-5 palabras MAYÚSCULAS",
-  "thumb_textB": "string · 3-5 palabras MAYÚSCULAS",
+  "thumb_textA": "string · 1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
+  "thumb_textB": "string · 2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
   "thumb_prompt": "string · prompt completo en inglés para GPT image-gen con plantilla adaptada al tema",
   "midform": [
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
@@ -88,6 +88,18 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
     {"timestamp":"MM:SS – MM:SS","section":"...","risk":"...","adjustment":"..."}
   ]
 }
+
+TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
+Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO adaptado a la voz épica del canal. Frase CORTA, DIRECTA, con gancho profético-iniciático partida en dos golpes (A + B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**.
+
+Patrones que funcionan para Gonzalo:
+- Reveal de verdad oculta: "LO QUE OLVIDÓ" / "EUROPA"  ·  "LA VERDAD" / "SOBRE COVADONGA"
+- Afirmación mítica contra el relato moderno: "LOS HÉROES QUE" / "TE BORRARON"  ·  "OCCIDENTE OLVIDÓ" / "SU DESTINO"
+- Símbolo + carga: "EL LOBO" / "SIGUE AULLANDO"  ·  "LA ESPADA QUE" / "TE FALTA"
+- Pregunta iniciática: "¿POR QUÉ CAYÓ" / "OCCIDENTE?"  ·  "¿ERES GUERRERO" / "O CONSUMIDOR?"
+- Frase-marca del canal: "LA FORJA" / "TE ESPERA"  ·  "AULLIDO DEL" / "LOBO"
+
+NUNCA: clickbait tecno ("¡NO LO CREERÁS!"), coaching, mayúsculas gritonas sin gravitas mítica.
 
 PLANTILLAS DE MINIATURA — adapta la elegida al tema concreto y construye thumb_prompt en inglés con lado despejado izquierda o derecha (alterna). Sin texto en la imagen, sin libros visibles, sin personas.
 

@@ -60,8 +60,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido con SOLO estas claves (NO incluyas `chap
   "description": "string · SOLO contenido narrativo del vídeo concreto en PRIMERA PERSONA DEL PLURAL (gancho + 1-2 párrafos + bullets opcionales). NUNCA URLs, redes, hashtags, CTA, lista de colaboradores ni firma — Pablo añade ese bloque aparte.",
   "tags": "20-25 tags separados por coma",
   "thumb_template": 1-4 (1=retrato biopic del autor en su época, 2=escena de tradición cristiana viva, 3=escena contemporánea de crisis cultural, 4=escena antigua/clásica de origen o mito),
-  "thumb_textA": "3-5 palabras MAYÚSCULAS",
-  "thumb_textB": "3-5 palabras MAYÚSCULAS",
+  "thumb_textA": "1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
+  "thumb_textB": "2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
   "thumb_prompt": "prompt completo en INGLÉS, museum-grade, sin texto, sin personas mirando a cámara, 16:9, 1280x720",
   "midform": [
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"prompt EN específico del clip, museum-grade, 16:9"}
@@ -108,6 +108,18 @@ La plataforma rechaza automáticamente cualquier midform fuera del rango 12-25 m
 
 IMAGEN POR MIDFORM (obligatorio):
 Cada midform debe llevar su propio `thumb_prompt` específico al contenido del clip. NO reutilices el del vídeo entero. Estética coherente con el nuevo lenguaje visual del canal: **CINE HISTÓRICO REALISTA, tipo póster de película europea de autor SIN LETRAS NI TEXTOS**. Referencias: Malick, Tarkovsky, Sorrentino, Beauvois, Sokurov, Pasolini, Herzog. NADA de ilustración vectorial ni surrealismo ni bodegones ni abstracción digital. Cada imagen debe funcionar como una foto fija de una película bien fotografiada. Sin texto en la imagen, sin caras mirando a cámara, sin logos, sin subtítulos. Incluye `16:9 aspect ratio, 1280x720`.
+
+TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
+Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO adaptado a la voz filosófica del canal. Frase CORTA, DIRECTA, con gancho intelectual partida en dos golpes (A + B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**. Se lee en un segundo.
+
+Patrones que funcionan para Peregrinos (colectivo, plural — pero el TEXTO va en 2ª persona / afirmativo):
+- Pregunta filosófica directa: "¿DIOS RESPONDE" / "AL SUFRIMIENTO?"  ·  "¿ERES LIBRE" / "O SOLO USUARIO?"
+- Afirmación contundente: "OCCIDENTE" / "SE SUICIDA"  ·  "NIETZSCHE" / "TENÍA RAZÓN"
+- Reveal filosófico: "LO QUE DOSTOIEVSKI" / "PREDIJO"  ·  "LO QUE GIRARD" / "VIO ANTES"
+- Provocación intelectual: "NO ERES HOMBRE" / "ERES USUARIO"  ·  "LA FE NO ES" / "LO QUE CREES"
+- Contraste temporal: "1870 EXPLICA" / "TU HOY"  ·  "PLATÓN VIO" / "TU DISTOPÍA"
+
+NUNCA: clickbait vulgar ("¡FLIPA CON…!"), tono adolescente, sensacionalismo. La provocación es filosófica, no de reality show.
 
 PLANTILLAS DE MINIATURA — estilo CINEMATOGRÁFICO REALISTA, tipo póster de película europea de cine de autor. NADA de ilustración vectorial ni surrealismo ni bodegón. NADA de letras, símbolos, logos, texto en superficies ni caras mirando a cámara. Ambientes históricos reales o contemporáneos, realistas, con luz natural o práctica cinematográfica. Adapta al tema del vídeo. Alterna lado izquierdo/derecho despejado para superponer retrato/título.
 

@@ -74,8 +74,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
   "tags": "string · 20-25 tags separados por coma",
   "pinned_comment": "string · 3-5 líneas terminando en pregunta abierta",
   "thumb_template": 1-4 (1=despacho luz cálida, 2=camino al amanecer, 3=retiro con libro abierto, 4=reloj de arena),
-  "thumb_textA": "string · 3-5 palabras MAYÚSCULAS",
-  "thumb_textB": "string · 3-5 palabras MAYÚSCULAS",
+  "thumb_textA": "string · 1ª mitad frase-gancho MAYÚSCULAS (ver 'TEXTO DE MINIATURA' más abajo)",
+  "thumb_textB": "string · 2ª mitad frase-gancho MAYÚSCULAS, total A+B = 4-6 palabras",
   "thumb_prompt": "string · prompt completo en inglés para GPT image-gen con plantilla adaptada al tema",
   "midform": [
     {"title":"...","in":"MM:SS","out":"MM:SS","phrase_in":"...","phrase_out":"...","duration":"MM:SS","burn_text":"...","thumb_prompt":"string · prompt en INGLÉS para image-gen, específico al tema del clip, 16:9, sin texto, sin personas mirando a cámara, museum-grade"},
@@ -89,6 +89,18 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes/después, sin bl
     {"timestamp":"MM:SS – MM:SS","section":"...","risk":"...","adjustment":"..."}
   ]
 }
+
+TEXTO DE MINIATURA (thumb_textA + thumb_textB) — regla obligatoria:
+Estilo "podcast anglosajón" tipo Modern Wisdom / Diary of a CEO. Frase CORTA, DIRECTA, con gancho psicológico partida en dos golpes (A + B). MAYÚSCULAS. TOTAL A+B = **4-6 palabras**. Se lee en un segundo.
+
+Patrones que funcionan para José:
+- Imperativo directo: "DEJA DE" / "MENDIGAR APROBACIÓN"  ·  "APUESTA POR" / "TI MISMO YA"
+- Paradoja moral: "LIDERAR NO ES" / "MANDAR"  ·  "SERVIR ES" / "MÁS RENTABLE"
+- Frase-marca del autor: "TUS PENSAMIENTOS" / "TE CONSTRUYEN"  ·  "EL SÉPTIMO" / "SOBRE"
+- Cifra + promesa: "3 PREGUNTAS QUE" / "TE CAMBIAN"
+- Provocación humilde: "ESTO NADIE" / "TE LO DICE"  ·  "LA CULTURA DEL" / "SELFIE MATA"
+
+NUNCA: coaching de feria ("¡ATRÉVETE!"), corporativa hueca ("SINERGIA…"), o mayúsculas gritonas sin gancho.
 
 PLANTILLAS DE MINIATURA — adapta la elegida al tema concreto y construye thumb_prompt en inglés con lado despejado izquierda o derecha (alterna). Sin texto en la imagen, sin libros visibles, sin personas. Estética sobria, profesional, cálida — nada de neón ni stock corporativo.
 
