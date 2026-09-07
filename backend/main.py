@@ -1055,6 +1055,137 @@ def update_video(video_id: int, payload: dict, db: Session = Depends(get_db)):
     return _video_to_dict(v)
 
 
+@app.post("/api/videos/{video_id}/reprocess")
+def reprocess_video(video_id: int):
+    """Streaming SSE: re-genera el PAQUETE con el prompt ACTUAL del creator,
+    reusando el transcript ya guardado en la BD. NO re-transcribe (no gasta
+    AssemblyAI ni Blob upload). Útil para aplicar cambios de prompt a vídeos
+    ya procesados (ej: Grow migrado a inglés, o 3 opciones de miniatura)."""
+
+    def event_stream():
+        db: Session = SessionLocal()
+        try:
+            v = db.query(Video).filter(Video.id == video_id).first()
+            if not v:
+                yield _sse({"stage": "error", "error": "Vídeo no encontrado"}); return
+            if not v.transcript or not v.transcript.strip():
+                yield _sse({"stage": "error",
+                            "error": "Este vídeo no tiene transcript guardado, no se puede regenerar"}); return
+            c = v.creator
+            if not c:
+                yield _sse({"stage": "error", "error": "Creator del vídeo desconocido"}); return
+            cfg = c.config or {}
+
+            yield _sse({"stage": "claude_start", "progress": 8,
+                        "message": f"Regenerando {v.code} con el prompt actual…"})
+
+            from anthropic import Anthropic
+            from .claude_client import _extract_json
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                yield _sse({"stage": "error", "error": "ANTHROPIC_API_KEY no configurada"}); return
+            client = Anthropic(api_key=api_key)
+            model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+            user_msg = c.user_template.format(
+                code=v.code, title=v.title, type=v.type,
+                duration=v.duration or "—", transcript=v.transcript,
+            )
+            EXPECTED_CHARS = 9000
+            paquete = None
+            last_err = None
+            for attempt in range(2):
+                accumulated = []
+                last_emit = 0
+                try:
+                    with client.messages.stream(
+                        model=model, max_tokens=16000,
+                        system=c.system_prompt,
+                        messages=[{"role": "user", "content": user_msg}],
+                    ) as stream:
+                        for text_chunk in stream.text_stream:
+                            accumulated.append(text_chunk)
+                            chars = sum(len(x) for x in accumulated)
+                            if chars - last_emit >= 200:
+                                last_emit = chars
+                                pct = 8 + min(80, (chars / EXPECTED_CHARS) * 80)
+                                yield _sse({
+                                    "stage": "claude_streaming",
+                                    "progress": round(pct, 1),
+                                    "chars": chars,
+                                    "message": f"Claude generando… ({chars} caracteres)",
+                                })
+                    raw = "".join(accumulated)
+                    paquete = _extract_json(raw)
+                    missing = [k for k in REQUIRED_KEYS if k not in paquete]
+                    if missing:
+                        raise ValueError(f"Faltan claves: {missing}")
+                    if "midform" in paquete and not isinstance(paquete["midform"], list):
+                        raise ValueError("midform debe ser lista")
+                    if "shorts" in paquete and not isinstance(paquete["shorts"], list):
+                        raise ValueError("shorts debe ser lista")
+                    if "trailer" in paquete and not isinstance(paquete["trailer"], dict):
+                        raise ValueError("trailer debe ser objeto")
+                    paquete.setdefault("midform", [])
+                    paquete.setdefault("shorts", [])
+                    break
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Reprocess intento {attempt + 1}: {e}")
+                    if attempt < 1:
+                        yield _sse({"stage": "retrying", "progress": 8,
+                                    "message": "JSON inválido, reintentando…"})
+
+            if paquete is None:
+                raise RuntimeError(f"No se obtuvo JSON válido: {last_err}")
+
+            # Mismo pipeline post-Claude que los otros flujos
+            paquete = snap_clip_timestamps(paquete, v.transcript)
+            paquete = drop_unverified_clips(paquete)
+            mf_min = cfg.get("midform_duration_min_seconds", 300)
+            mf_max = cfg.get("midform_duration_max_seconds", 720)
+            paquete = filter_midform_by_duration(paquete, min_seconds=mf_min, max_seconds=mf_max)
+            paquete = strip_colons_from_titles(paquete)
+            paquete = normalize_thumb_options(paquete)
+
+            yield _sse({"stage": "rendering", "progress": 92,
+                        "message": "Renderizando entregables"})
+            artifacts = render_all(v.code, v.type, v.duration or "—", paquete,
+                                   cfg.get("thumb_templates", {}))
+
+            yield _sse({"stage": "saving_final", "progress": 97,
+                        "message": "Guardando en base de datos"})
+            v.paquete_json = paquete
+            v.paquete_md = artifacts["paquete_md"]
+            v.descripcion_txt = artifacts["descripcion"]
+            v.cortes_csv = artifacts["cortes_csv"]
+            v.miniatura_txt = artifacts["miniatura"]
+            v.status = "done"
+            v.error_message = None
+            db.commit(); db.refresh(v)
+
+            yield _sse({
+                "stage": "done", "progress": 100,
+                "message": f"PAQUETE regenerado: {v.code}",
+                "video": _video_to_dict(v, include_artifacts=True),
+            })
+
+        except Exception as e:
+            logger.exception("Fallo en reprocess_video stream")
+            yield _sse({"stage": "error", "error": f"{type(e).__name__}: {e}"})
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 FILE_MAP = {
     "PAQUETE.md": ("paquete_md", "text/markdown"),
     "transcripcion.txt": ("transcript", "text/plain"),

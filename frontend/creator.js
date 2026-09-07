@@ -979,6 +979,66 @@ function buildChecklistBlock(v) {
   });
   actions.appendChild(clearBtn);
 
+  const regenBtn = document.createElement("button");
+  regenBtn.className = "btn-ghost";
+  regenBtn.textContent = "🔁 Regenerar PAQUETE";
+  regenBtn.title = "Vuelve a pedir a Claude con el prompt actual del creator. Reusa el transcript ya guardado (no gasta AssemblyAI, solo Claude ~$0.10-0.50).";
+  regenBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const ok = confirm(
+      `¿Regenerar el PAQUETE de ${v.code} con el prompt actual?\n\n` +
+      "Se sobrescriben título, descripción, miniatura, midforms y demás.\n" +
+      "El transcript se mantiene igual (no se re-transcribe).\n" +
+      "Coste aprox: 1 llamada a Claude (~$0.10-0.50)."
+    );
+    if (!ok) return;
+    regenBtn.disabled = true;
+    regenBtn.textContent = "🔁 Regenerando…";
+    try {
+      showProgress("Iniciando regeneración…", 0, "");
+      const res = await fetch(`/api/videos/${v.id}/reprocess`, {
+        method: "POST",
+        headers: { "Accept": "text/event-stream" },
+      });
+      if (!res.ok || !res.body) throw new Error(`${res.status}: ${await res.text()}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "", errorMsg = null;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          if (!block.startsWith("data:")) continue;
+          let evt;
+          try { evt = JSON.parse(block.replace(/^data:\s*/, "")); } catch { continue; }
+          const label = STAGE_LABELS[evt.stage] || evt.stage;
+          if (evt.stage === "done") {
+            showProgress(label, 100, evt.message || "", "done");
+          } else if (evt.stage === "error") {
+            errorMsg = evt.error || "Error desconocido";
+            showProgress("Error", 100, errorMsg, "error");
+          } else {
+            showProgress(label, evt.progress || 0, evt.message || "");
+          }
+        }
+      }
+      if (errorMsg) throw new Error(errorMsg);
+      fullVideoCache.delete(v.id);
+      await refreshVideos(v.id);
+      setTimeout(() => progressBlock.classList.add("hidden"), 2500);
+    } catch (err) {
+      alert("Error al regenerar: " + err.message);
+    } finally {
+      regenBtn.disabled = false;
+      regenBtn.textContent = "🔁 Regenerar PAQUETE";
+    }
+  });
+  actions.appendChild(regenBtn);
+
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn-danger";
   deleteBtn.textContent = "🗑 Eliminar vídeo";
