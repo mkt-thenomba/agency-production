@@ -611,17 +611,11 @@ function renderPaquete(v) {
     const combined = [o.textA || "", o.textB || ""].filter(Boolean).join("\n");
     if (combined) {
       thumbWrap.appendChild(copyBlock({
-        label: `${label} · texto completo (A + B)`,
+        label: label,
         content: combined,
         compact: true,
       }));
     }
-    if (o.textA) thumbWrap.appendChild(copyBlock({
-      label: `${label} · texto A (arriba)`, content: o.textA, compact: true,
-    }));
-    if (o.textB) thumbWrap.appendChild(copyBlock({
-      label: `${label} · texto B (abajo)`, content: o.textB, compact: true,
-    }));
   });
 
   if (p.thumb_prompt) {
