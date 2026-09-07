@@ -101,24 +101,21 @@ El orden (`order` 1, 2, 3…) del trailer es el ORDEN NARRATIVO FINAL, no el cro
 
 ——— MIDFORM — piezas secundarias del episodio ———
 
-Además del trailer, extrae **2-4 midforms** del episodio. Un midform es un tramo autocontenido (5-12 min) que se puede publicar como pieza independiente en YouTube/Reels-largo/etc. Buenos candidatos:
+Además del trailer, extrae **exactamente 3 midforms** del episodio (ni 2 ni 4 — siempre 3). Un midform es un tramo autocontenido (5-12 min) que se puede publicar como pieza independiente en YouTube/Reels-largo/etc. Buenos candidatos, uno de cada categoría idealmente:
 - Un caso concreto que el invitado cuenta con inicio-nudo-desenlace
 - Un tramo de aprendizajes concretos con "3 cosas que" o "cómo hicimos X"
 - Una anécdota extensa con contexto
 - Un debate cerrado sobre un tema (ronda, contratación, pivot, decisión difícil)
 
 Estructura de cada midform:
-- Título (55-70 caracteres, sin dos puntos, viral pero profesional — mismo criterio que el título del episodio)
+- Título en INGLÉS (55-70 caracteres, sin dos puntos, viral pero profesional — mismo criterio que el título del episodio)
 - IN / OUT (timestamps del transcript)
-- phrase_in / phrase_out (CITA LITERAL palabra por palabra — misma regla de oro)
+- phrase_in / phrase_out (CITA LITERAL palabra por palabra — en el idioma del transcript)
 - Duración (05:00 a 12:00 → la plataforma rechaza fuera de rango)
-- Texto para miniatura ("burn_text", 3-6 palabras MAYÚSCULAS)
+- Texto para miniatura ("burn_text", 3-6 palabras MAYÚSCULAS EN INGLÉS)
 - thumb_prompt propio (en inglés, específico al contenido del clip, 16:9, museum-grade — NO reutilices el del episodio entero)
 
-Cantidad esperada según duración del audio:
-- Audio ≤ 30 min → 1-2 midforms
-- Audio 30-60 min → 2-3 midforms
-- Audio > 60 min → 3-4 midforms
+CANTIDAD OBLIGATORIA: **3 midforms exactos por episodio**. NO 2, NO 4. Divide mentalmente el episodio en 3 tercios y busca UN midform en cada tercio, sin solaparse. Si un tercio no da para un midform coherente de 5-12 min, busca dentro de él el mejor tramo posible dentro del rango — mejor un midform que sea un 6 sobre 10 que devolver menos de 3.
 
 DURACIÓN DE LOS MIDFORM (obligatorio):
 Cada pieza entre **05:00 y 12:00**. La plataforma rechaza automáticamente los fuera de rango. Si un tramo interesante no cuadra con la duración, mejor omitirlo (o meterlo en el trailer si es más corto).
@@ -167,7 +164,7 @@ TRANSCRIPCIÓN DEL AUDIO (con timestamps MM:SS absolutos):
 
 {transcript}
 
-Genera el PAQUETE completo. Recuerda: JSON puro, sin envoltorios. NO incluyas chapters, tags, pinned_comment, shorts ni alerts. La entrega CENTRAL es el bloque `trailer` con 4-6 clips reordenados narrativamente, y como pieza secundaria un bloque `midform` con 2-4 piezas de 5-12 min. Cada clip (trailer y midform) con phrase_in/phrase_out CITADAS LITERALMENTE del transcript.
+Genera el PAQUETE completo. Recuerda: JSON puro, sin envoltorios. NO incluyas chapters, tags, pinned_comment, shorts ni alerts. La entrega CENTRAL es el bloque `trailer` con 4-6 clips reordenados narrativamente, y como pieza secundaria un bloque `midform` con **exactamente 3 piezas** de 5-12 min (uno por cada tercio del episodio). Cada clip (trailer y midform) con phrase_in/phrase_out CITADAS LITERALMENTE del transcript.
 
 ⚠️ IDIOMA: Todo el output orientado al público EN INGLÉS (title, alternatives, description, thumb_options.textA/textB, thumb_prompt, trailer.narrative_arc y clips[].why_here, midform[].title y burn_text y thumb_prompt). Sólo phrase_in / phrase_out quedan en el idioma del transcript porque son citas literales.
 """
@@ -206,7 +203,7 @@ CHECKLIST_TEMPLATE = [
     {"key": "miniatura_b", "phase": "Producción", "label": "Miniatura B del episodio"},
     {"key": "enviar_editor", "phase": "Producción", "label": "Enviar a editor (episodio completo)"},
     {"key": "revisar_episodio", "phase": "Producción", "label": "Revisar edición del episodio completo"},
-    {"key": "revisar_midform", "phase": "Producción", "label": "Revisar midforms (2-4 piezas 5-12 min)"},
+    {"key": "revisar_midform", "phase": "Producción", "label": "Revisar midforms (3 piezas 5-12 min)"},
     # Publicación
     {"key": "publicar_trailer", "phase": "Publicación", "label": "Publicar trailer (RRSS + programado en YT)"},
     {"key": "subir_episodio", "phase": "Publicación", "label": "Subir episodio completo"},
