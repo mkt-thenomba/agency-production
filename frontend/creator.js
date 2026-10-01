@@ -333,6 +333,7 @@ function showProgress(stage, pct, detail, state) {
 // Vercel Blob upload: el navegador sube DIRECTO a Blob storage para
 // saltarse el límite de 4.5 MB de las funciones. Pedimos un token a
 // /api/blob/handle-upload y luego hacemos PUT con XHR (para progreso).
+// Reintenta una vez tras un fallo de red (típicamente redes WiFi flaky).
 // ──────────────────────────────────────────────────────────────────
 async function uploadToVercelBlob(file, onProgress) {
   // Sanea el nombre: solo letras/números/punto/guión y limita longitud
@@ -342,6 +343,25 @@ async function uploadToVercelBlob(file, onProgress) {
     .slice(0, 80);
   const pathname = `audio/${safeName}`;
 
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) {
+      // Mostrar reintento al usuario y esperar un poco
+      if (onProgress) onProgress(0);
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    try {
+      return await _attemptBlobUpload(file, pathname, onProgress);
+    } catch (err) {
+      lastErr = err;
+      // Solo reintentar en errores de red; no en 4xx/5xx o problemas del token
+      if (!/red|network|timeout|abortado/i.test(err.message)) break;
+    }
+  }
+  throw lastErr;
+}
+
+async function _attemptBlobUpload(file, pathname, onProgress) {
   // 1) Pedir clientToken al backend
   const tokenRes = await fetch("/api/blob/handle-upload", {
     method: "POST",
@@ -380,10 +400,14 @@ async function uploadToVercelBlob(file, onProgress) {
     xhr.setRequestHeader("x-vercel-blob-access", "public");
     xhr.setRequestHeader("x-content-type", file.type || "application/octet-stream");
     xhr.setRequestHeader("x-content-length", String(file.size));
+    // 10 min para audios grandes en WiFi lento
+    xhr.timeout = 10 * 60 * 1000;
 
+    let lastProgressPct = 0;
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && onProgress) {
-        onProgress((e.loaded / e.total) * 100);
+        lastProgressPct = (e.loaded / e.total) * 100;
+        onProgress(lastProgressPct);
       }
     });
     xhr.onload = () => {
@@ -396,10 +420,32 @@ async function uploadToVercelBlob(file, onProgress) {
           reject(new Error("Respuesta de Blob inválida: " + e.message));
         }
       } else {
-        reject(new Error(`Blob ${xhr.status}: ${xhr.responseText.slice(0, 250)}`));
+        // Vercel devolvió un error HTTP — intentamos extraer el detalle
+        let detail = xhr.responseText.slice(0, 300);
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body.error?.message) detail = body.error.message;
+        } catch {}
+        reject(new Error(`Blob ${xhr.status}: ${detail}`));
       }
     };
-    xhr.onerror = () => reject(new Error("Error de red subiendo a Blob"));
+    xhr.onerror = () => {
+      // onerror no da detalles, pero el estado parcial sí
+      const pct = lastProgressPct.toFixed(0);
+      const online = (typeof navigator !== "undefined" && navigator.onLine === false)
+        ? " (navegador reporta OFFLINE — revisa tu conexión)"
+        : "";
+      reject(new Error(
+        `Error de red subiendo a Blob tras ${pct}%${online}. ` +
+        `Si usas VPN, antivirus con escaneo HTTPS, o bloqueador de anuncios, pruébalo desactivado. ` +
+        `También puede ser WiFi débil — prueba con cable o 4G.`
+      ));
+    };
+    xhr.ontimeout = () => reject(new Error(
+      `Timeout subiendo a Blob tras ${(xhr.timeout / 1000 / 60).toFixed(0)} min. ` +
+      `Red muy lenta — prueba con mejor conexión o comprime el audio a 128 kbps.`
+    ));
+    xhr.onabort = () => reject(new Error("Subida abortada"));
     xhr.send(file);
   });
 }
