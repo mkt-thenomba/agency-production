@@ -37,7 +37,7 @@
       </div>
 
       <div class="tabs">
-        <button class="tab-btn" data-tab="audio">▸ Subir audio MP3/M4A/WAV</button>
+        <button class="tab-btn" data-tab="audio">▸ Subir audio o vídeo</button>
         <button class="tab-btn active" data-tab="paste">Pegar transcripción</button>
         <button class="tab-btn" data-tab="upload">JSON / SRT / TXT</button>
       </div>
@@ -55,12 +55,12 @@
       </div>
       <div class="tab-panel hidden" data-tab-panel="audio">
         <div id="audio-dropzone" class="dropzone-small audio-dropzone">
-          <input type="file" id="audio-input" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden />
-          <div class="drop-title-small">Arrastra el audio</div>
-          <div class="drop-hint-small">MP3 · M4A · WAV · AAC · OGG · FLAC · hasta 100 MB</div>
+          <input type="file" id="audio-input" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac,.mp4,.mov,.m4v,.webm,.mkv" hidden />
+          <div class="drop-title-small">Arrastra el audio o el vídeo</div>
+          <div class="drop-hint-small">MP3 · M4A · WAV · MP4 · MOV · MKV · hasta 500 MB</div>
           <div id="audio-filename" class="filename-display"></div>
         </div>
-        <p class="audio-hint">Lo transcribe AssemblyAI en español. Para audios &gt; 30 min recomendado exportar a MP3 a 128 kbps para que el archivo entre y la transcripción vaya rápida.</p>
+        <p class="audio-hint">AssemblyAI extrae el audio y lo transcribe. Puedes subir el vídeo tal cual (MP4/MOV) o un audio comprimido (MP3 128 kbps para los episodios largos — sube más rápido).</p>
       </div>
 
       <div class="actions-row">

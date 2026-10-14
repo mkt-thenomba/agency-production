@@ -106,8 +106,11 @@ def generate_client_token(
     return f"{TOKEN_PREFIX_CLIENT}{store_id}_{combined_b64}"
 
 
-# Tipos MIME aceptados para los uploads de audio
+# Tipos MIME aceptados para los uploads. Incluimos vídeo porque AssemblyAI
+# acepta cualquier container multimedia y extrae el audio él solo — así
+# el usuario puede arrastrar el MP4 original sin convertir primero a MP3.
 AUDIO_ALLOWED_CONTENT_TYPES = [
+    # Audio
     "audio/mpeg",
     "audio/mp3",
     "audio/mp4",
@@ -120,7 +123,16 @@ AUDIO_ALLOWED_CONTENT_TYPES = [
     "audio/ogg",
     "audio/flac",
     "audio/webm",
+    # Vídeo (AssemblyAI extrae el audio automáticamente)
+    "video/mp4",
+    "video/mpeg",
+    "video/quicktime",
+    "video/x-m4v",
+    "video/webm",
+    "video/x-matroska",
+    "video/avi",
+    "video/x-msvideo",
     # Algunos navegadores envían tipos genéricos cuando no detectan
     "application/octet-stream",
 ]
-MAX_AUDIO_BYTES = 250 * 1024 * 1024  # 250 MB
+MAX_AUDIO_BYTES = 500 * 1024 * 1024  # 500 MB — los vídeos pesan más que el audio

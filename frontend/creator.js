@@ -159,13 +159,13 @@ function bindAudioDropzone() {
   });
 
   function acceptAudio(file) {
-    const MAX_MB = 100;
+    const MAX_MB = 500;
     const MIN_KB = 10;  // por debajo de 10 KB no puede tener audio real
     const sizeMB = file.size / 1024 / 1024;
     const sizeKB = file.size / 1024;
 
     if (file.size === 0) {
-      audioName.textContent = `⚠️ ${file.name} está VACÍO (0 bytes). Vuelve a exportar/descargar el audio desde su origen.`;
+      audioName.textContent = `⚠️ ${file.name} está VACÍO (0 bytes). Vuelve a exportar/descargar el fichero desde su origen.`;
       audioName.style.color = "var(--error)";
       uploadedAudioFile = null;
       return;
@@ -177,13 +177,15 @@ function bindAudioDropzone() {
       return;
     }
     if (sizeMB > MAX_MB) {
-      audioName.textContent = `⚠️ ${file.name} pesa ${sizeMB.toFixed(1)} MB. Máximo ${MAX_MB} MB. Exporta a MP3 a 128 kbps.`;
+      audioName.textContent = `⚠️ ${file.name} pesa ${sizeMB.toFixed(1)} MB. Máximo ${MAX_MB} MB. Si es un vídeo largo, extrae el audio como MP3 a 128 kbps y sube ese.`;
       audioName.style.color = "var(--error)";
       uploadedAudioFile = null;
       return;
     }
     audioName.style.color = "";
-    audioName.textContent = `Audio cargado: ${file.name} (${sizeMB.toFixed(1)} MB · ${file.type || "tipo desconocido"})`;
+    const isVideo = (file.type || "").startsWith("video/");
+    const kind = isVideo ? "Vídeo" : "Audio";
+    audioName.textContent = `${kind} cargado: ${file.name} (${sizeMB.toFixed(1)} MB · ${file.type || "tipo desconocido"})`;
     uploadedAudioFile = file;
     if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/, "");
   }
@@ -195,7 +197,7 @@ function bindProcess() {
 
     if (activeTab === "audio") {
       if (!uploadedAudioFile) {
-        statusLine.textContent = "Arrastra un audio MP3/M4A/WAV en la zona azul.";
+        statusLine.textContent = "Arrastra un audio o un vídeo en la zona azul.";
         statusLine.classList.add("error");
         return;
       }
